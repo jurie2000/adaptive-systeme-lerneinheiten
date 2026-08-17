@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 04 – Evolutionäre Algorithmen II · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl);
+    }
+
+    .modul-kopf {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--as-abstand-s);
+      padding: var(--as-abstand-m);
+      border-bottom: 1px solid var(--as-rahmen);
+      margin-bottom: var(--as-abstand-l);
+    }
+
+    .modul-kopf__meta {
+      color: var(--as-text-gedaempft);
+      font-size: 0.85rem;
+      margin: 0.2em 0 0;
+    }
+
+    .quelle-link {
+      font-size: 0.8rem;
+      color: var(--as-text-gedaempft);
+    }
+
+    section {
+      margin-bottom: var(--as-abstand-xl);
+    }
+
+    section h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5em;
+    }
+
+    section h2 .modul-nr {
+      color: var(--as-text-gedaempft);
+      font-size: 0.8em;
+      font-weight: 400;
+    }
+
+    section h3 {
+      color: var(--as-ablauf);
+      font-size: 1rem;
+      margin-top: var(--as-abstand-l);
+    }
+
+    .begriffe-liste {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--as-abstand-m);
+      padding: 0;
+      margin: 0;
+    }
+
+    .begriffe-liste dt {
+      font-weight: 600;
+      color: var(--as-begriff);
+    }
+
+    .begriffe-liste dd {
+      margin: 0.2em 0 0;
+    }
+
+    .bestandteile-liste {
+      display: grid;
+      gap: var(--as-abstand-s);
+      margin: 0 0 var(--as-abstand-m);
+    }
+
+    .bestandteil {
+      display: grid;
+      grid-template-columns: 13rem 1fr;
+      gap: var(--as-abstand-m);
+      align-items: start;
+    }
+
+    .bestandteil dt {
+      font-weight: 600;
+      color: var(--as-ablauf);
+    }
+
+    .bestandteil dd {
+      margin: 0;
+    }
+
+    @media (max-width: 520px) {
+      .bestandteil {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    ol.ablauf-liste li {
+      margin-bottom: 0.6em;
+    }
+
+    /* ---------- Animation: gemeinsame Bausteine ---------- */
+
+    .ea-teil {
+      margin-bottom: var(--as-abstand-l);
+    }
+
+    .ea-teil__titel {
+      font-weight: 600;
+      color: var(--as-ablauf);
+      margin-bottom: var(--as-abstand-s);
+    }
+
+    .ea-tsp-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--as-abstand-s);
+    }
+
+    .ea-slot {
+      flex: 0 0 100px;
+      text-align: center;
+    }
+
+    .ea-slot[data-versteckt="true"] {
+      display: none;
+    }
+
+    .ea-slot__svg {
+      width: 100px;
+      height: 100px;
+      background: var(--as-flaeche-erhoeht);
+      border: 2px solid var(--as-rahmen);
+      border-radius: var(--as-radius-s);
+    }
+
+    .ea-slot[data-hervorgehoben="true"] .ea-slot__svg {
+      border-color: var(--as-akzent);
+    }
+
+    .ea-slot__tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-top: 0.3em;
+    }
+
+    .ea-slot__laenge {
+      font-size: 0.72rem;
+      color: var(--as-text-gedaempft);
+      min-height: 1.1em;
+    }
+
+    .ea-stadt { fill: var(--as-text-gedaempft); }
+    .ea-stadt--hervorgehoben { fill: var(--as-akzent); }
+    .ea-pfad { fill: none; stroke: var(--as-begriff); stroke-width: 1.6; }
+
+    .ea-pool {
+      display: inline-flex;
+      gap: var(--as-abstand-s);
+      padding: var(--as-abstand-s);
+      border: 2px dashed var(--as-rahmen);
+      border-radius: var(--as-radius-m);
+      margin-top: var(--as-abstand-s);
+    }
+
+    .ea-pool[data-aktiv="true"] {
+      border-color: var(--as-akzent);
+    }
+
+    .ea-vektor-row {
+      display: flex;
+      align-items: center;
+      gap: var(--as-abstand-s);
+      margin-bottom: var(--as-abstand-s);
+    }
+
+    .ea-vektor-row[data-versteckt="true"] {
+      display: none;
+    }
+
+    .ea-vektor-label {
+      flex: 0 0 9rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .ea-vektor-zellen {
+      display: flex;
+      gap: 4px;
+    }
+
+    .ea-zelle {
+      min-width: 2.6rem;
+      padding: 0.3em 0.2em;
+      text-align: center;
+      font-size: 0.85rem;
+      border-radius: var(--as-radius-s);
+      background: var(--as-flaeche-erhoeht);
+      border: 1px solid var(--as-rahmen);
+    }
+
+    .ea-zelle--p1 { border-color: var(--as-akzent); background: var(--as-akzent-gedeckt); }
+    .ea-zelle--p2 { border-color: var(--as-begriff); background: var(--as-flaeche); }
+
+    .ea-bar-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 110px;
+      margin-bottom: var(--as-abstand-s);
+    }
+
+    .ea-bar {
+      flex: 0 0 34px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+    }
+
+    .ea-bar__saeule {
+      width: 100%;
+      background: var(--as-flaeche-erhoeht);
+      border: 1px solid var(--as-rahmen);
+      border-radius: 3px 3px 0 0;
+    }
+
+    .ea-bar[data-gezogen="true"] .ea-bar__saeule {
+      border-color: var(--as-akzent);
+      background: var(--as-akzent-gedeckt);
+    }
+
+    .ea-bar[data-sieger="true"] .ea-bar__saeule {
+      border-color: var(--as-ablauf);
+      background: var(--as-flaeche);
+      border-width: 2px;
+    }
+
+    .ea-bar__wert {
+      font-size: 0.7rem;
+      margin-top: 0.2em;
+      color: var(--as-text-gedaempft);
+    }
+
+    .ea-bar[data-sieger="true"] .ea-bar__wert {
+      color: var(--as-ablauf);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 04 – Evolutionäre Algorithmen II</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        VL 04 vertieft die drei Bausteine aus VL 03 – Rekombination, Mutation und
+        Selektion – um konkrete, austauschbare Verfahren. Für jeden Baustein gibt es
+        mehrere Operatoren mit unterschiedlichem Verhalten, etwa unterschiedlich starkem
+        Selektionsdruck oder unterschiedlich starker Kausalität bei der Mutation. Welche
+        Kombination am besten funktioniert, hängt vom Problem ab – genau deshalb
+        schneidet nach dem No-Free-Lunch-Theorem aus VL 03 kein einzelner Operator bei
+        jedem Problem am besten ab.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Diskrete Rekombination</dt><dd>Übernimmt jede Eigenschaft eines Kindes komplett von einem der Eltern.</dd></div>
+        <div><dt>Intermediäre Rekombination</dt><dd>Bildet für jede Eigenschaft einen gewichteten Mittelwert der Eltern – braucht einen numerischen Genotyp.</dd></div>
+        <div><dt>Abbildungsrekombination</dt><dd>Löst bei Permutationen (z. B. TSP) entstehende Doppelungen auf, indem Konflikte auf den zweiten Elternteil abgebildet werden.</dd></div>
+        <div><dt>Positionelle Mutation</dt><dd>Verändert die Reihenfolge von Elementen im Genotyp, z. B. durch Vertauschen, Invertieren oder Verschieben.</dd></div>
+        <div><dt>Binäre Mutation</dt><dd>Kippt ein oder mehrere Bits im Genotyp, gesteuert über eine Mutationsrate.</dd></div>
+        <div><dt>Arithmetische Mutation</dt><dd>Verändert numerische Werte um einen Zufallsbetrag, z. B. normalverteilt (Gauß) oder gleichverteilt (Creep).</dd></div>
+        <div><dt>Diversität</dt><dd>Die Vielfalt unterschiedlicher Genotypen innerhalb einer Population.</dd></div>
+        <div><dt>Selektionsdruck</dt><dd>Ein Maß dafür, wie nachgiebig die Selektion gegenüber schlechteren Individuen ist.</dd></div>
+        <div><dt>Zufallsselektion</dt><dd>Wählt Individuen rein zufällig aus der Population aus.</dd></div>
+        <div><dt>Bestenselektion</dt><dd>Übernimmt die besten Individuen der Population.</dd></div>
+        <div><dt>Turnierselektion</dt><dd>Wählt q zufällige Individuen aus und nimmt das beste davon.</dd></div>
+        <div><dt>Fitnessproportionale Selektion</dt><dd>Wählt Individuen mit einer zur Fitness proportionalen Wahrscheinlichkeit aus.</dd></div>
+        <div><dt>Stochastisches universelles Sampling</dt><dd>Zieht mehrere Individuen gleichzeitig äquidistant, um Dominanz einzelner Individuen zu vermeiden.</dd></div>
+        <div><dt>Rangbasierte Selektion</dt><dd>Wählt Individuen mit einer zu ihrem Rang – nicht zum absoluten Fitnesswert – proportionalen Wahrscheinlichkeit.</dd></div>
+        <div><dt>Elitenselektion</dt><dd>Übernimmt die besten Individuen unverändert, der Rest wird mit einem anderen Verfahren aufgefüllt.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>Rekombinationsverfahren</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Diskrete Rekombination</dt><dd>Übernimmt jede Eigenschaft komplett von einem der Eltern, z. B. per k-Punkt- oder uniformem Crossover; funktioniert für praktisch jede Darstellungsform.</dd></div>
+        <div class="bestandteil"><dt>Intermediäre Rekombination</dt><dd>Bildet für jede Eigenschaft einen gewichteten Mittelwert der Eltern; setzt einen numerischen Genotyp voraus.</dd></div>
+        <div class="bestandteil"><dt>Abbildungsrekombination</dt><dd>Sonderform der diskreten Rekombination für Permutationen wie das TSP, die entstehende Doppelungen durch Abbildung auf den zweiten Elternteil auflöst.</dd></div>
+      </dl>
+
+      <h3>Mutationsverfahren</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Positionelle Mutation</dt><dd>Verändert die Reihenfolge von Elementen im Genotyp (vertauschend, invertierend, verschiebend); geeignet für Bitketten oder andere nicht-numerische Genotypen, sofern das Ergebnis immer gültig bleibt.</dd></div>
+        <div class="bestandteil"><dt>Binäre Mutation</dt><dd>Kippt ein oder mehrere Bits im Genotyp, gesteuert über eine Mutationsrate μ.</dd></div>
+        <div class="bestandteil"><dt>Arithmetische Mutation</dt><dd>Verändert numerische Werte um einen Zufallswert, z. B. normalverteilt (Gauß-Mutation) oder gleichverteilt innerhalb einer Schrittweite (Creep-Mutation).</dd></div>
+      </dl>
+
+      <h3>Selektionsverfahren</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Zufallsselektion</dt><dd>Wählt zufällige Individuen – als Elternselektion brauchbar, als Umweltselektion ohne Selektionsdruck ungeeignet.</dd></div>
+        <div class="bestandteil"><dt>Bestenselektion</dt><dd>Übernimmt die besten Individuen – hoher Selektionsdruck, eher als Umweltselektion sinnvoll.</dd></div>
+        <div class="bestandteil"><dt>Turnierselektion</dt><dd>Wählt q zufällige Individuen und nimmt das beste davon; über q lässt sich der Selektionsdruck direkt einstellen.</dd></div>
+        <div class="bestandteil"><dt>Fitnessproportionale Selektion</dt><dd>Wählt Individuen mit einer zur Fitness proportionalen Wahrscheinlichkeit; gute Individuen können die Auswahl dominieren.</dd></div>
+        <div class="bestandteil"><dt>Stochastisches universelles Sampling</dt><dd>Verbessert die fitnessproportionale Selektion, indem mehrere Individuen gleichzeitig äquidistant gezogen werden – vermeidet das Dominanzproblem.</dd></div>
+        <div class="bestandteil"><dt>Rangbasierte Selektion</dt><dd>Wählt Individuen mit einer zum Rang proportionalen Wahrscheinlichkeit; das schlechteste Individuum wird nie gewählt.</dd></div>
+        <div class="bestandteil"><dt>Elitenselektion</dt><dd>Übernimmt die m besten Individuen in jedem Fall unverändert, der Rest wird mit einem anderen Verfahren aufgefüllt.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+      <p>Der Grundzyklus aus VL 03 bleibt unverändert – hier geht es darum, wie man ihn mit den konkreten Operatoren aus Abschnitt 3 füllt:</p>
+      <ol class="ablauf-liste">
+        <li>Für jeden Baustein (Elternselektion, Rekombination, Mutation, Umweltselektion) wird ein passendes Verfahren gewählt – abhängig vom Genotyp (Permutation, Bitkette, reelle Zahlen) und vom gewünschten Selektionsdruck.</li>
+        <li>Für die Rekombination wird entschieden, ob eine diskrete Rekombination, eine intermediäre Rekombination oder – bei Permutationen wie dem TSP – eine Abbildungsrekombination verwendet wird, die Doppelungen auflöst.</li>
+        <li>Für die Mutation wird ein positionelles, ein binäres oder ein arithmetisches Verfahren gewählt, je nachdem, ob der Genotyp eine Reihenfolge, eine Bitkette oder reelle Zahlen ist.</li>
+        <li>Erzeugt ein Verfahren möglicherweise ungültige Individuen, etwa doppelte Städte beim TSP, muss zusätzlich sichergestellt werden, dass entweder nur gültige Individuen entstehen können oder ungültige Individuen repariert bzw. aussortiert werden.</li>
+        <li>Für Eltern- und Umweltselektion wird jeweils ein Selektionsverfahren gewählt – dieselben Verfahren sind für beide Zwecke einsetzbar, wirken dort aber unterschiedlich.</li>
+        <li>Der gewählte Selektionsdruck bestimmt, wie stark sich die Population an bereits guten Individuen orientiert: Zu hoher Druck verringert die Diversität und erhöht das Risiko eines lokalen Optimums, zu geringer Druck lässt die Suche kaum vorankommen.</li>
+        <li>Übung 4 empfiehlt außerdem, pro Mutation zufällig zwischen mehreren Mutationsoperatoren zu wechseln, statt sich auf einen einzigen festzulegen – das verringert die Gefahr, systematisch in einer bestimmten Art von lokalem Optimum steckenzubleiben.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Operatoren im Vergleich</h2>
+      <p>
+        Alle drei Operatorfamilien werden am selben Beispiel verglichen – für die Mutation
+        an der aus VL 03 bekannten Rundreise, für Rekombination und Selektion an den
+        Beispieldaten aus der Vorlesung.
+      </p>
+
+      <div class="ea-teil" id="teil-mutation">
+        <div class="ea-teil__titel">Teil A – Mutation</div>
+        <div class="ea-tsp-row" id="ea-tsp-row"></div>
+        <div class="ea-pool" id="ea-pool">
+          <span style="align-self:center; font-size:0.8rem; color:var(--as-text-gedaempft);">Operatorenpool:</span>
+        </div>
+      </div>
+
+      <div class="ea-teil" id="teil-rekombination">
+        <div class="ea-teil__titel">Teil B – Rekombination</div>
+        <div id="ea-vektoren"></div>
+      </div>
+
+      <div class="ea-teil" id="teil-selektion">
+        <div class="ea-teil__titel">Teil C – Selektionsdruck (Turnierselektion)</div>
+        <div class="ea-bar-row" id="ea-bars"></div>
+        <p style="font-size:0.8rem; color:var(--as-text-gedaempft); margin:0;" id="ea-selektion-label"></p>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Der EA aus Übung 3 sollte erweitert werden um
+        eine Mutation, die pro Aufruf zufällig zwischen mehreren implementierten
+        Mutationsoperatoren wählt (z. B. Invertierung und Verschiebung), eine
+        Abbildungsrekombination sowie allgemein implementierte, austauschbare Eltern- und
+        Umweltselektion – derselbe Selektionsoperator sollte für beide einsetzbar sein.
+        Die entstandenen Kombinationen waren nach Schrittanzahl bis zu einem
+        Gleichgewichtszustand und der Güte der besten gefundenen Lösung zu vergleichen.
+        Aufgabe 4.2 ergänzt ein dynamisches TSP, bei dem sich die Positionen der Städte in
+        regelmäßigen Abständen ändern.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Der direkte Vergleich mehrerer
+        Operator-Kombinationen am selben Problem macht sichtbar, dass nicht „irgendein"
+        EA zählt, sondern die konkrete Wahl der Operatoren die Konvergenzgeschwindigkeit
+        und Lösungsgüte deutlich beeinflusst. Beim dynamischen TSP wird zusätzlich
+        sichtbar, ob eine Operator-Kombination schnell genug auf ein sich veränderndes
+        Problem reagieren kann.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Die zufällige Wahl zwischen
+        mehreren Mutationsoperatoren ist robuster als ein einzelner fester Operator, weil
+        unterschiedliche Operatoren unterschiedliche Nachbarn im Lösungsraum erreichen
+        (siehe Animation, Teil A). Außerdem nutzen Eltern- und Umweltselektion zwar
+        dieselben Verfahren, wirken aber unterschiedlich: Die Elternselektion bestimmt,
+        wer sich fortpflanzt, die Umweltselektion, wer überlebt.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>TSP-Strang:</strong> Übung 1 → Übung 3 (VL 03) → Übung 4 (dieses Modul) →
+        Übung 5 (lokale Suche, VL 05) → Übung 6 (Ameisenkolonie-Optimierung, VL 06).
+        Vergleichskriterium bleibt: Wie systematisch durchsucht das Verfahren den
+        Lösungsraum, und wie gut entkommt es lokalen Optima?
+      </p>
+      <p>
+        <strong>VL 03 – Evolutionäre Algorithmen I</strong> legt den Grundzyklus fest, den
+        dieses Modul nur mit konkreten Operatoren füllt – Elternselektion, Rekombination,
+        Mutation, Bewertung und Umweltselektion bleiben identisch.
+      </p>
+      <p>
+        <strong>VL 05 – Evolutionäre Algorithmen III</strong> setzt genetische
+        Algorithmen, Evolutionsstrategien und genetische Programmierung aus genau diesen
+        Bausteinen zusammen, nur in jeweils charakteristischer Kombination.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Selektionsdruck?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Selektionsdruck ist ein Maß dafür, wie nachgiebig die Selektion gegenüber
+            schlechteren Individuen ist. Bei hohem Selektionsdruck setzen sich fast
+            ausschließlich die besten Individuen durch, was die Population schnell in
+            Richtung eines Optimums bewegt, aber die Diversität verringert. Bei geringem
+            Selektionsdruck haben auch schwächere Individuen eine reelle Chance, was die
+            Diversität erhält, die Suche aber verlangsamt. Die Wahl des Selektionsdrucks
+            ist deshalb immer ein Kompromiss zwischen Exploration und gezielter
+            Verbesserung.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der Abbildungsrekombination, und wofür wird sie gebraucht?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Abbildungsrekombination ist eine Sonderform der diskreten Rekombination
+            für Genotypen, die eine Permutation darstellen, etwa die Städtereihenfolge
+            beim TSP. Ein normaler k-Punkt-Crossover würde dort leicht Städte doppelt oder
+            gar nicht in das Kind übernehmen. Die Abbildungsrekombination löst solche
+            Konflikte auf, indem noch fehlende Eigenschaften über eine Abbildung auf den
+            zweiten Elternteil ergänzt werden, sodass am Ende wieder eine gültige,
+            vollständige Permutation entsteht.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Elitenselektion?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei der Elitenselektion werden die m besten Individuen aus Eltern- und
+            Nachkommenpopulation auf jeden Fall unverändert in die nächste Generation
+            übernommen. Der restliche Platz in der neuen Population wird mit einem
+            anderen Selektionsverfahren aufgefüllt. Dadurch geht garantiert keine bereits
+            gefundene gute Lösung mehr verloren. Entspricht m genau der Populationsgröße
+            n, wird die Elitenselektion zur reinen Bestenselektion.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich diskrete von intermediärer Rekombination?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die diskrete Rekombination übernimmt jede Eigenschaft eines Kindes
+            komplett von einem der beiden Eltern, es findet also kein Vermischen von
+            Werten statt und das Verfahren funktioniert für praktisch jede
+            Darstellungsform. Die intermediäre Rekombination bildet dagegen für jede
+            Eigenschaft einen gewichteten Mittelwert der Elternwerte und erzeugt damit
+            tatsächlich neue Zwischenwerte. Sie setzt deshalb einen numerischen Genotyp
+            voraus, auf dem sich Mittelwerte überhaupt sinnvoll bilden lassen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Turnierselektion von fitnessproportionaler Selektion?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Turnierselektion zieht q zufällige Individuen aus der Population und
+            wählt davon das beste – der Selektionsdruck lässt sich hier direkt über q
+            einstellen. Die fitnessproportionale Selektion wählt dagegen Individuen mit
+            einer Wahrscheinlichkeit, die direkt proportional zu ihrer Fitness ist, ohne
+            eine Zwischenauswahl. Das birgt die Gefahr, dass Individuen mit deutlich
+            besserer Fitness die Auswahl dominieren, ein Problem, dem Turnierselektion
+            durch die begrenzte Stichprobengröße q weniger stark unterliegt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich Elternselektion und Umweltselektion in ihrer Wirkung, obwohl beide dieselben Selektionsverfahren nutzen können?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Beide können technisch dasselbe Verfahren nutzen, zum Beispiel eine
+            Turnierselektion, wirken im Ablauf des EA aber an unterschiedlicher Stelle.
+            Die Elternselektion bestimmt, welche Individuen aus der aktuellen Population
+            Nachkommen erzeugen dürfen und wie oft – sie entscheidet also, wer sich
+            fortpflanzt. Die Umweltselektion entscheidet danach, welche Individuen aus
+            Eltern- und Kinderpopulation tatsächlich in die nächste Generation überleben.
+            Der Unterschied liegt also im Zeitpunkt und im Zweck der Auswahl, nicht im
+            verwendeten Mechanismus.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie bemerken, dass Ihr EA für das TSP nach der Rekombination Rundreisen mit doppelt besuchten Städten erzeugt – was tun Sie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Der Genotyp beim TSP ist eine Permutation aller Städte, und ein normaler
+            Crossover verletzt diese Eigenschaft leicht, weil er Werte unabhängig
+            voneinander übernimmt. Ich würde die Rekombination durch eine
+            Abbildungsrekombination ersetzen, die genau für Permutationen entwickelt
+            wurde und Konflikte durch Abbildung auf den zweiten Elternteil auflöst, statt
+            einfach Werte zu duplizieren. Alternativ könnte ich ungültige Kinder nach der
+            Rekombination erkennen und reparieren oder aussortieren, doch die passende
+            Rekombination von vornherein ist die sauberere Lösung.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten den Selektionsdruck Ihres EA erhöhen, ohne das Verfahren zu wechseln – was tun Sie zum Beispiel bei einer Turnierselektion?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei der Turnierselektion lässt sich der Selektionsdruck direkt über den
+            Parameter q steuern, also die Anzahl der Individuen, die pro Turnier zufällig
+            gezogen werden. Erhöhe ich q, steigt die Wahrscheinlichkeit, dass ein
+            insgesamt sehr gutes Individuum im gezogenen Teilnehmerfeld enthalten ist und
+            das Turnier gewinnt, wodurch sich gute Individuen stärker durchsetzen. Ich
+            sollte dabei aber im Blick behalten, dass ein zu großes q die Diversität der
+            Population deutlich verringert und das Risiko eines lokalen Optimums erhöht.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihr EA verbessert sich zunächst schnell, stagniert dann aber über viele Generationen – woran könnte das liegen, und was würden Sie ändern?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Stagnation nach anfänglich schnellem Fortschritt deutet oft auf zu
+            geringe Diversität hin – die Population hat sich zu stark auf einen Bereich
+            des Suchraums festgelegt, möglicherweise ein lokales Optimum, und findet ohne
+            neue Varianten keinen Ausweg mehr. Ich würde zunächst den Selektionsdruck
+            senken, etwa durch ein kleineres q bei der Turnierselektion, und prüfen, ob
+            mehrere unterschiedliche Mutationsoperatoren zufällig gemischt werden statt
+            nur eines. Beides vergrößert die erreichbare Nachbarschaft im Suchraum und
+            gibt der Population wieder eine Chance, aus dem aktuellen Optimum
+            herauszufinden.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Selektionsdruck mit Diversität gleichsetzen:</span>
+        Beide stehen in einem Zielkonflikt – hoher Druck bedeutet geringere Diversität –
+        sind aber nicht dasselbe.</li>
+        <li><span class="as-achtung">Annehmen, Rekombination und Mutation fänden auf dem
+        Phänotyp statt:</span> Beide finden auf dem Genotyp statt, wie schon in VL 03
+        festgelegt.</li>
+        <li><span class="as-achtung">Turnierselektion nur als Elternselektion
+        einordnen:</span> Sie ist laut Vorlesung für Eltern- und Umweltselektion
+        gleichermaßen geeignet.</li>
+        <li><span class="as-achtung">Fitnessproportionale Selektion für unproblematisch
+        halten:</span> Bei stark unterschiedlichen Fitnesswerten dominieren gute
+        Individuen die Auswahl zu stark (Dominanzproblem) – SUS oder rangbasierte
+        Selektion sind dagegen robuster.</li>
+        <li><span class="as-achtung">Glauben, ein einzelner Mutationsoperator reiche für
+        jedes Problem:</span> Verschiedene Operatoren erreichen verschiedene Nachbarn im
+        Suchraum – siehe Animation, Teil A.</li>
+        <li><span class="as-achtung">Elitenselektion mit Bestenselektion
+        verwechseln:</span> Elitenselektion sichert nur die m besten Individuen, der Rest
+        der Population wird weiterhin mit einem anderen Verfahren aufgefüllt; erst bei
+        m = n entspricht sie der reinen Bestenselektion.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      // ---------- Teil A: Mutation am TSP ----------
+
+      var CITY_POS = { A: [20, 20], B: [80, 15], C: [90, 60], D: [55, 90], E: [15, 70], F: [50, 45] };
+      var BASIS = ["A", "B", "C", "D", "E", "F"];
+
+      function swapAt(order, i, j) {
+        var c = order.slice();
+        var t = c[i]; c[i] = c[j]; c[j] = t;
+        return c;
+      }
+      function invertRange(order, i, j) {
+        var c = order.slice();
+        var teil = c.slice(i, j + 1).reverse();
+        for (var k = 0; k < teil.length; k++) c[i + k] = teil[k];
+        return c;
+      }
+      function moveTo(order, from, to) {
+        var c = order.slice();
+        var el = c.splice(from, 1)[0];
+        c.splice(to, 0, el);
+        return c;
+      }
+
+      var VERTAUSCHT = swapAt(BASIS, 1, 4);
+      var INVERTIERT = invertRange(BASIS, 1, 3);
+      var VERSCHOBEN = moveTo(BASIS, 4, 1);
+
+      function tourLength(order) {
+        var total = 0;
+        for (var i = 0; i < order.length; i++) {
+          var a = CITY_POS[order[i]];
+          var b = CITY_POS[order[(i + 1) % order.length]];
+          total += Math.hypot(a[0] - b[0], a[1] - b[1]);
+        }
+        return total;
+      }
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+      function drawTour(svg, order, hervor) {
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var pts = order.map(function (c) { return CITY_POS[c]; });
+        var attr = pts.concat([pts[0]]).map(function (p) { return p[0] + "," + p[1]; }).join(" ");
+        svg.appendChild(svgEl("polyline", { points: attr, class: "ea-pfad" }));
+        order.forEach(function (c) {
+          var pos = CITY_POS[c];
+          var h = hervor && hervor.indexOf(c) !== -1;
+          svg.appendChild(svgEl("circle", { cx: pos[0], cy: pos[1], r: h ? 5 : 3.5, class: "ea-stadt" + (h ? " ea-stadt--hervorgehoben" : "") }));
+        });
+      }
+
+      var tspSlots = [
+        { id: "basis", label: "Ausgangsreise", order: BASIS },
+        { id: "vertauscht", label: "Vertauschend", order: VERTAUSCHT },
+        { id: "invertiert", label: "Invertierend", order: INVERTIERT },
+        { id: "verschoben", label: "Verschiebend", order: VERSCHOBEN }
+      ];
+      var tspSlotEls = {};
+
+      function buildTspSlots() {
+        var row = document.getElementById("ea-tsp-row");
+        tspSlots.forEach(function (cfg) {
+          var wrap = document.createElement("div");
+          wrap.className = "ea-slot";
+          var svg = svgEl("svg", { viewBox: "0 0 100 100", class: "ea-slot__svg" });
+          wrap.appendChild(svg);
+          var tag = document.createElement("div");
+          tag.className = "ea-slot__tag";
+          tag.textContent = cfg.label;
+          wrap.appendChild(tag);
+          var laenge = document.createElement("div");
+          laenge.className = "ea-slot__laenge";
+          wrap.appendChild(laenge);
+          row.appendChild(wrap);
+          tspSlotEls[cfg.id] = { wrap: wrap, svg: svg, tag: tag, laenge: laenge };
+          buildPoolIcon(cfg);
+        });
+      }
+
+      function buildPoolIcon(cfg) {
+        if (cfg.id === "basis") return;
+        var pool = document.getElementById("ea-pool");
+        var svg = svgEl("svg", { viewBox: "0 0 100 100", style: "width:44px;height:44px;background:var(--as-flaeche-erhoeht);border:1px solid var(--as-rahmen);border-radius:4px;" });
+        drawTour(svg, cfg.order);
+        pool.appendChild(svg);
+      }
+
+      function setTspSlot(id, order, opts) {
+        opts = opts || {};
+        var els = tspSlotEls[id];
+        drawTour(els.svg, order, opts.hervorStaedte);
+        els.wrap.dataset.versteckt = opts.versteckt ? "true" : "false";
+        els.wrap.dataset.hervorgehoben = opts.hervorgehoben ? "true" : "false";
+        els.laenge.textContent = opts.zeigeLaenge ? tourLength(order).toFixed(1) + " Einheiten" : "";
+      }
+
+      // ---------- Teil B: Rekombination ----------
+
+      var P1V = [0.6, 1.4, 2.1, 2.0, 0.3];
+      var P2V = [0.2, 1.0, 2.5, 1.2, 0.5];
+      var CROSSOVER_PUNKTE = [1, 3];
+
+      function diskretesKind(p1, p2, punkte) {
+        var quelle = 1;
+        var result = [];
+        var herkunft = [];
+        for (var i = 0; i < p1.length; i++) {
+          if (punkte.indexOf(i) !== -1) quelle = quelle === 1 ? 2 : 1;
+          result.push(quelle === 1 ? p1[i] : p2[i]);
+          herkunft.push(quelle);
+        }
+        return { werte: result, herkunft: herkunft };
+      }
+
+      function intermediaeresKind(p1, p2, alpha) {
+        return p1.map(function (v, i) { return alpha * v + (1 - alpha) * p2[i]; });
+      }
+
+      var vektorRows = {};
+
+      function buildVektorRows() {
+        var container = document.getElementById("ea-vektoren");
+        [
+          { id: "p1", label: "Elter 1", werte: P1V, klasse: "p1" },
+          { id: "p2", label: "Elter 2", werte: P2V, klasse: "p2" },
+          { id: "diskret", label: "Kind (diskret)", werte: null },
+          { id: "intermediaer", label: "Kind (intermediär)", werte: null }
+        ].forEach(function (cfg) {
+          var row = document.createElement("div");
+          row.className = "ea-vektor-row";
+          row.dataset.versteckt = "false";
+          var label = document.createElement("div");
+          label.className = "ea-vektor-label";
+          label.textContent = cfg.label;
+          row.appendChild(label);
+          var zellen = document.createElement("div");
+          zellen.className = "ea-vektor-zellen";
+          row.appendChild(zellen);
+          container.appendChild(row);
+          vektorRows[cfg.id] = { row: row, zellen: zellen };
+          if (cfg.werte) renderVektor(cfg.id, cfg.werte, cfg.werte.map(function () { return cfg.klasse; }));
+        });
+      }
+
+      function renderVektor(id, werte, herkunftKlassen) {
+        var zellen = vektorRows[id].zellen;
+        zellen.innerHTML = "";
+        werte.forEach(function (w, i) {
+          var zelle = document.createElement("div");
+          zelle.className = "ea-zelle" + (herkunftKlassen ? " ea-zelle--" + herkunftKlassen[i] : "");
+          zelle.textContent = w.toFixed(1);
+          zellen.appendChild(zelle);
+        });
+      }
+
+      function setVektorZeileVersteckt(id, versteckt) {
+        vektorRows[id].row.dataset.versteckt = versteckt ? "true" : "false";
+      }
+
+      // ---------- Teil C: Selektionsdruck ----------
+
+      var POPULATION = [0.1, 0.2, 0.4, 0.4, 0.6, 0.7, 0.9];
+      var ZIEHUNG_KLEIN = [2, 5];
+      var ZIEHUNG_GROSS = [0, 2, 3, 4, 6];
+      var barEls = [];
+
+      function buildBars() {
+        var row = document.getElementById("ea-bars");
+        POPULATION.forEach(function (wert, i) {
+          var bar = document.createElement("div");
+          bar.className = "ea-bar";
+          var saeule = document.createElement("div");
+          saeule.className = "ea-bar__saeule";
+          saeule.style.height = (wert * 100) + "px";
+          bar.appendChild(saeule);
+          var label = document.createElement("div");
+          label.className = "ea-bar__wert";
+          label.textContent = wert.toFixed(1);
+          bar.appendChild(label);
+          row.appendChild(bar);
+          barEls.push(bar);
+        });
+      }
+
+      function setSelektion(ziehung) {
+        var label = document.getElementById("ea-selektion-label");
+        if (!ziehung) {
+          barEls.forEach(function (b) { b.dataset.gezogen = "false"; b.dataset.sieger = "false"; });
+          label.textContent = "";
+          return;
+        }
+        var werte = ziehung.map(function (i) { return POPULATION[i]; });
+        var siegerWert = Math.min.apply(null, werte);
+        var siegerIndex = ziehung[werte.indexOf(siegerWert)];
+        barEls.forEach(function (b, i) {
+          b.dataset.gezogen = ziehung.indexOf(i) !== -1 ? "true" : "false";
+          b.dataset.sieger = i === siegerIndex ? "true" : "false";
+        });
+        label.textContent = "Beispielziehung q=" + ziehung.length + ": Individuen mit Gütewert " +
+          werte.map(function (w) { return w.toFixed(1); }).join(", ") +
+          " gezogen – Sieger (kleinster Wert): " + siegerWert.toFixed(1) + ".";
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Ausgangspunkt ist dieselbe Rundreise A-B-C-D-E-F wie in VL 03. Drei unterschiedliche Mutationsoperatoren werden im Folgenden auf genau diese eine Ausgangsreise angewendet, damit ihre Wirkung direkt vergleichbar ist.",
+        "Die vertauschende Mutation tauscht zwei Städte in der Reihenfolge – hier Stadt B und Stadt E.",
+        "Die invertierende Mutation kehrt die Reihenfolge eines zusammenhängenden Teilabschnitts um – hier den Abschnitt von Stadt B bis Stadt D.",
+        "Die verschiebende Mutation verschiebt eine einzelne Stadt an eine andere Stelle der Reihenfolge – hier wandert Stadt E an die zweite Position.",
+        "Im direkten Vergleich erzeugen alle drei Operatoren aus derselben Ausgangsreise drei unterschiedliche Nachbarn im Lösungsraum – jeder Operator erreicht andere neue Rundreisen.",
+        "Wird immer nur ein einziger Operator verwendet, kann der Algorithmus dauerhaft nur die Nachbarn erreichen, die genau dieser eine Operator erzeugen kann – bestimmte bessere Rundreisen bleiben ihm unerreichbar. Übung 4 empfiehlt deshalb, den Operator bei jeder Mutation zufällig aus einem Pool zu wählen.",
+        "Auch bei der Rekombination gibt es diese Wahl. Zwei Beispiel-Elternvektoren aus der Vorlesung werden nun mit zwei verschiedenen Verfahren rekombiniert.",
+        "Die diskrete Rekombination übernimmt jede Eigenschaft komplett von einem der beiden Eltern – hier mit Wechselpunkten nach der ersten und der dritten Stelle.",
+        "Die intermediäre Rekombination bildet für jede Eigenschaft stattdessen den gewichteten Mittelwert der Eltern – hier den einfachen Mittelwert mit α = 0,5, live berechnet.",
+        "Auch die Selektion kennt unterschiedlich starken Druck. Bei der Turnierselektion mit kleinem q gewinnt hier ein eher mittelmäßiges Individuum, weil nur wenige zufällige Individuen zur Auswahl standen.",
+        "Bei größerem q aus derselben Population gewinnt zuverlässiger das insgesamt beste Individuum – der Selektionsdruck ist höher, doch die Diversität der Population sinkt dabei. Für Rekombination, Mutation und Selektion gilt derselbe Grundsatz: Es gibt nicht den einen richtigen Operator, sondern nur eine für das jeweilige Problem passende Kombination."
+      ];
+
+      function render(step) {
+        // Teil A
+        if (step === 0) {
+          setTspSlot("basis", BASIS, { zeigeLaenge: true });
+          setTspSlot("vertauscht", VERTAUSCHT, { versteckt: true });
+          setTspSlot("invertiert", INVERTIERT, { versteckt: true });
+          setTspSlot("verschoben", VERSCHOBEN, { versteckt: true });
+        } else if (step === 1) {
+          setTspSlot("basis", BASIS, { zeigeLaenge: true });
+          setTspSlot("vertauscht", VERTAUSCHT, { zeigeLaenge: true, hervorgehoben: true, hervorStaedte: ["B", "E"] });
+          setTspSlot("invertiert", INVERTIERT, { versteckt: true });
+          setTspSlot("verschoben", VERSCHOBEN, { versteckt: true });
+        } else if (step === 2) {
+          setTspSlot("vertauscht", VERTAUSCHT, { zeigeLaenge: true });
+          setTspSlot("invertiert", INVERTIERT, { zeigeLaenge: true, hervorgehoben: true, hervorStaedte: ["B", "C", "D"] });
+          setTspSlot("verschoben", VERSCHOBEN, { versteckt: true });
+        } else if (step >= 3) {
+          setTspSlot("invertiert", INVERTIERT, { zeigeLaenge: true });
+          setTspSlot("verschoben", VERSCHOBEN, { zeigeLaenge: true, hervorgehoben: step === 3, hervorStaedte: ["E"] });
+        }
+        document.getElementById("ea-pool").dataset.aktiv = step >= 5 ? "true" : "false";
+
+        // Teil B
+        var vRekombVersteckt = step < 6;
+        setVektorZeileVersteckt("p1", vRekombVersteckt);
+        setVektorZeileVersteckt("p2", vRekombVersteckt);
+        setVektorZeileVersteckt("diskret", step < 7);
+        setVektorZeileVersteckt("intermediaer", step < 8);
+        if (step >= 7) {
+          var kd = diskretesKind(P1V, P2V, CROSSOVER_PUNKTE);
+          renderVektor("diskret", kd.werte, kd.herkunft.map(function (q) { return "p" + q; }));
+        }
+        if (step >= 8) {
+          renderVektor("intermediaer", intermediaeresKind(P1V, P2V, 0.5), null);
+        }
+
+        // Teil C
+        if (step < 9) setSelektion(null);
+        else if (step === 9) setSelektion(ZIEHUNG_KLEIN);
+        else setSelektion(ZIEHUNG_GROSS);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        buildTspSlots();
+        buildVektorRows();
+        buildBars();
+
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

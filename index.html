@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adaptive Systeme – Lernseite</title>
+  <link rel="stylesheet" href="assets/theme.css">
+</head>
+<body>
+  <header class="as-shell-header">
+    <div>
+      <h1>Adaptive Systeme</h1>
+      <p class="as-shell-header__untertitel">Lernseite für die mündliche Prüfung · SoSe 2026</p>
+    </div>
+    <div class="as-shell-header__controls">
+      <input id="as-suche" class="as-suche" type="search" placeholder="Suche nach Titel, Begriff, Schlagwort …" aria-label="Module durchsuchen">
+      <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+    </div>
+  </header>
+
+  <div class="as-shell-body">
+    <nav id="as-sidebar" class="as-sidebar" aria-label="Vorlesungen"></nav>
+    <main id="as-main" class="as-main"></main>
+  </div>
+
+  <script src="content/manifest.js"></script>
+  <script src="assets/module.js"></script>
+  <script src="assets/shell.js"></script>
+</body>
+</html>

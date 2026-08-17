@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 11 – Machine Learning III · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    .hinweis-korrektur { background: var(--as-akzent-gedeckt); border: 1px solid var(--as-akzent); border-radius: var(--as-radius-m); padding: var(--as-abstand-s) var(--as-abstand-m); font-size: 0.82rem; margin-bottom: var(--as-abstand-l); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .baum-svg { width: 100%; max-width: 420px; height: 240px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .baum-knoten { fill: var(--as-flaeche); stroke: var(--as-begriff); stroke-width: 1.6; }
+    .baum-blatt { fill: var(--as-akzent-gedeckt); stroke: var(--as-ablauf); stroke-width: 1.6; }
+    .baum-pending { fill: var(--as-flaeche); stroke: var(--as-rahmen); stroke-width: 1.4; stroke-dasharray: 3 2; }
+    .baum-kante { stroke: var(--as-text-gedaempft); stroke-width: 1.2; }
+    .baum-text { font-size: 8px; text-anchor: middle; fill: var(--as-text); }
+    .baum-text--klein { font-size: 6.5px; text-anchor: middle; fill: var(--as-text-gedaempft); }
+
+    table.gewinn-tabelle { border-collapse: collapse; width: 100%; font-size: 0.82rem; margin-top: var(--as-abstand-s); }
+    table.gewinn-tabelle th, table.gewinn-tabelle td { border: 1px solid var(--as-rahmen); padding: 0.35em 0.6em; text-align: center; }
+    table.gewinn-tabelle th { background: var(--as-flaeche-erhoeht); color: var(--as-ablauf); }
+    table.gewinn-tabelle tr[data-sieger="true"] td { color: var(--as-akzent); font-weight: 600; }
+    .as-tabellenwrapper { overflow-x: auto; }
+    table.daten-tabelle { border-collapse: collapse; font-size: 0.72rem; }
+    table.daten-tabelle th, table.daten-tabelle td { border: 1px solid var(--as-rahmen); padding: 0.2em 0.45em; text-align: center; }
+    table.daten-tabelle th { background: var(--as-flaeche-erhoeht); }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 11 – Machine Learning III</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <p class="hinweis-korrektur">
+      <strong>Hinweis:</strong> Dieses Modul behandelt Entscheidungsbäume, wie in
+      <code>VL11-Machine-Learning-III.pdf</code> tatsächlich vorgestellt – ursprünglich
+      war angenommen worden, VL 11 behandle k-Means/k-NN. Die Zuordnung wurde korrigiert
+      (Details in <code>design.md</code>, Abschnitt 2); dieses Modul gehört inhaltlich zu
+      Übung 10, nicht Übung 11.
+    </p>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Ein Entscheidungsbaum klassifiziert, indem er ausgehend von der Wurzel an jedem
+        Knoten ein Attribut prüft und dem passenden Ast folgt, bis ein Blatt mit
+        eindeutiger Klasse erreicht ist. Beim Aufbau aus Trainingsdaten wählt der
+        Gain-of-order-Ansatz an jedem Knoten das Attribut, das die Entropie – die
+        Unordnung bezüglich der Klassenzugehörigkeit – am stärksten verringert.
+        Empfehlungs- und Beratersysteme lösen ein verwandtes Problem auf andere Weise:
+        Sie leiten Entscheidungen nicht aus einem gelernten Baum, sondern aus der
+        Ähnlichkeit zu anderen Nutzern beziehungsweise aus der Aggregation mehrerer
+        unabhängiger Bewertungen ab.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Entscheidungsbaum</dt><dd>Geordneter, gerichteter Baum, dessen Knoten Attributtests und dessen Blätter Klassen entsprechen.</dd></div>
+        <div><dt>Entropie H(M)</dt><dd>Maß für die Unordnung einer Menge bezüglich der Klassenzugehörigkeit ihrer Elemente.</dd></div>
+        <div><dt>Gewinn an Ordnung (Gain of order) H_G</dt><dd>Verringerung der Entropie, die eine Zerlegung nach einem bestimmten Attribut erreicht.</dd></div>
+        <div><dt>Reine Teilmenge</dt><dd>Eine Teilmenge, in der alle Elemente derselben Klasse angehören (Entropie 0).</dd></div>
+        <div><dt>Overfitting (bei Entscheidungsbäumen)</dt><dd>Zu kleinteilige Unterscheidungen, die eher Rauschen als echte Struktur abbilden.</dd></div>
+        <div><dt>Random Forest</dt><dd>Ensemble mehrerer, im Idealfall unkorrelierter Entscheidungsbäume, die per Mehrheitsentscheid kombiniert werden.</dd></div>
+        <div><dt>Kollaboratives Filtern</dt><dd>Empfehlung auf Basis der Ähnlichkeit zwischen Nutzern oder Produkten anhand ihrer Bewertungen.</dd></div>
+        <div><dt>Inhaltsbasiertes Filtern</dt><dd>Empfehlung auf Basis der Ähnlichkeit von Produkteigenschaften, unabhängig von Nutzerbewertungen.</dd></div>
+        <div><dt>Kaltstartproblem</dt><dd>Fehlende Empfehlungsqualität für neue Nutzer oder Produkte ohne ausreichende Bewertungshistorie.</dd></div>
+        <div><dt>Beratersystem</dt><dd>Aggregiert die Bewertungen mehrerer unabhängiger „Berater" zu einer Gesamtentscheidung, ohne dass Zusammenhänge gelernt werden müssen.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>Entscheidungsbaum</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Knoten</dt><dd>Testet ein Attribut des zu klassifizierenden Objekts.</dd></div>
+        <div class="bestandteil"><dt>Blatt</dt><dd>Entspricht einer eindeutigen (oder, bei nicht reinen Blättern, der häufigsten) Klasse.</dd></div>
+        <div class="bestandteil"><dt>Entropie H(M) = Σ −pₓ·log₂(pₓ)</dt><dd>Misst die Unordnung einer Menge bezüglich der Klassenzugehörigkeit.</dd></div>
+        <div class="bestandteil"><dt>Gewinn an Ordnung H_G = H_M − ⊕(S)</dt><dd>Kriterium zur Wahl des besten Splitting-Attributs an jedem Knoten.</dd></div>
+      </dl>
+
+      <h3>Empfehlungssysteme</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Kollaboratives Filtern (nutzer-/produktbasiert)</dt><dd>Nutzt Ähnlichkeiten in den Bewertungen, meist über Kosinusähnlichkeit.</dd></div>
+        <div class="bestandteil"><dt>Inhaltsbasiertes Filtern</dt><dd>Nutzt Produkteigenschaften (z. B. Autor, Keywords) statt Bewertungen.</dd></div>
+        <div class="bestandteil"><dt>Hybride Systeme</dt><dd>Kombinieren beide Ansätze.</dd></div>
+      </dl>
+
+      <h3>Beratersysteme</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Berater</dt><dd>Bewerten unabhängig voneinander mögliche Aktionen einer Tätigkeit.</dd></div>
+        <div class="bestandteil"><dt>Kombinationskriterium (Maximax/Maximin/Maxsum)</dt><dd>Fasst die Beraterstimmen zu einer Gesamtentscheidung zusammen.</dd></div>
+        <div class="bestandteil"><dt>Gewichtung</dt><dd>Stärker gewichtete Berater haben größeren Einfluss auf das Ergebnis.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+      <p>Entscheidungsbaum-Aufbau nach dem Gain-of-order-Ansatz:</p>
+      <ol class="ablauf-liste">
+        <li>Für die aktuelle Menge M wird die Entropie H(M) berechnet.</li>
+        <li>Für jedes noch nicht verwendete Attribut wird geprüft, wie sich M bei einer Zerlegung nach diesem Attribut in Teilmengen aufteilen würde.</li>
+        <li>Für jede mögliche Zerlegung wird der Gewinn an Ordnung berechnet: die Entropie von M abzüglich der gewichteten Summe der Teilmengen-Entropien.</li>
+        <li>Das Attribut mit dem größten Gewinn an Ordnung wird als Verzweigung an diesem Knoten gewählt.</li>
+        <li>Für jede entstehende Teilmenge wird geprüft, ob sie rein ist (Entropie 0); ist sie es, wird sie ein Blatt mit der entsprechenden Klasse.</li>
+        <li>Für alle nicht reinen Teilmengen wiederholt sich der Vorgang rekursiv mit den verbleibenden Attributen, bis der gesamte Baum aus reinen (oder, bei der Erweiterung aus Übung 10, ausreichend reinen) Blättern besteht.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Der wachsende Baum am Blutdruckbeispiel</h2>
+      <p>
+        Alle Werte werden aus den zwölf Patientendaten der Vorlesung live berechnet.
+      </p>
+
+      <div class="as-tabellenwrapper">
+        <table class="daten-tabelle" id="daten-tabelle"></table>
+      </div>
+
+      <p class="ml-werte" id="entropie-info" style="font-size:0.85rem; font-weight:600; min-height:1.3em;"></p>
+
+      <svg class="baum-svg" id="baum-svg" viewBox="0 0 300 220"></svg>
+
+      <div class="as-tabellenwrapper">
+        <table class="gewinn-tabelle" id="gewinn-tabelle"></table>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Den Entscheidungsbaumalgorithmus „gain of
+        order" implementieren und mit dem Blutdruckbeispiel aus der Vorlesung testen.
+        Anschließend den Algorithmus um die Möglichkeit erweitern, auch nicht reine
+        Blätter zu erzeugen – dort sagt die Mehrheitsklasse im Blatt die Klasse voraus.
+        Mit dieser Erweiterung war der Algorithmus mit dem Zoo-Datensatz zu testen.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Die Animation ist exakt das
+        Blutdruckbeispiel, das Sie in Übung 10 nachprogrammieren – jeder berechnete
+        Gewinn an Ordnung lässt sich direkt mit der Ausgabe Ihrer eigenen
+        Implementierung vergleichen.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Die Erweiterung um nicht reine
+        Blätter ist praktisch notwendig, weil reale Datensätze wie der Zoo-Datensatz
+        selten so sauber trennbar sind wie das Blutdruckbeispiel – ohne diese
+        Erweiterung könnte der Algorithmus bei manchen Attributkombinationen gar keine
+        Entscheidung treffen.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>Zoo-Datensatz-Strang:</strong> Übung 9 (Wettbewerbslernen, VL 09) →
+        Übung 11 (k-Means/k-NN, VL 10) → Übung 10 (Entscheidungsbaum, dieses Modul).
+        Vergleichsfrage bleibt: überwacht oder unüberwacht? Entscheidungsbaum und k-NN
+        sind überwacht, k-Means und Wettbewerbslernen unüberwacht.
+      </p>
+      <p>
+        <strong>VL 07/08 – Neuronale Netze:</strong> Entscheidungsbäume sind laut
+        Vorlesung „White-Box"-Modelle – jede Entscheidung lässt sich am Baum
+        nachvollziehen –, im Gegensatz zu neuronalen Netzen als „Black-Box"-Modellen. Ein
+        guter Kontrast für die Prüfungsfrage nach nachvollziehbaren vs. intransparenten
+        Verfahren.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der Entropie einer Menge im Kontext von Entscheidungsbäumen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Entropie H(M) einer Menge M misst, wie unsortiert diese Menge
+            bezüglich der Klassenzugehörigkeit ihrer Elemente ist. Sie wird berechnet
+            als Summe über alle Klassen von minus der relativen Häufigkeit der Klasse
+            multipliziert mit ihrem binären Logarithmus. Enthält eine Menge nur
+            Elemente einer einzigen Klasse, ist die Entropie 0 (vollständig geordnet);
+            sind die Klassen gleich häufig vertreten, ist die Entropie maximal.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter dem Gewinn an Ordnung (gain of order)?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Der Gewinn an Ordnung H_G misst, wie stark eine Zerlegung einer Menge
+            nach einem bestimmten Attribut die Entropie verringert. Er berechnet sich
+            als Entropie der Ausgangsmenge abzüglich der gewichteten Summe der
+            Entropien aller entstehenden Teilmengen, wobei die Gewichtung dem Anteil
+            der jeweiligen Teilmenge an der Gesamtmenge entspricht. Beim Aufbau eines
+            Entscheidungsbaums wird an jedem Knoten das Attribut mit dem größten Gewinn
+            an Ordnung für die nächste Verzweigung gewählt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter kollaborativem Filtern?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Kollaboratives Filtern ist ein Empfehlungsansatz, der Informationen
+            auswertet, die durch viele Nutzer gemeinsam generiert wurden, etwa
+            Bewertungen, Käufe oder Betrachtungen. Beim nutzerbasierten Filtern werden
+            Nutzer mit ähnlichem Geschmack gesucht und deren Lieblingsprodukte
+            empfohlen; beim produktbasierten Filtern werden stattdessen Produkte mit
+            ähnlichem Bewertungsmuster gesucht. Die Ähnlichkeit wird dabei häufig über
+            die Kosinusähnlichkeit der Bewertungsvektoren bestimmt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich nutzerbasiertes von produktbasiertem kollaborativem Filtern?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Nutzerbasiertes kollaboratives Filtern sucht Nutzer mit ähnlichem
+            Bewertungsverhalten wie der aktuelle Nutzer und empfiehlt deren
+            Lieblingsprodukte. Produktbasiertes kollaboratives Filtern sucht dagegen
+            Produkte, die ähnlich bewertet wurden wie ein Produkt, das der Nutzer bereits
+            gekauft oder gemocht hat. Produktbasiertes Filtern ist dabei stabiler
+            gegenüber neuen Bewertungen, weil sich Produktähnlichkeiten seltener ändern
+            als Nutzerähnlichkeiten, und lässt sich deshalb im Voraus berechnen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich kollaboratives von inhaltsbasiertem Filtern?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Kollaboratives Filtern benötigt Bewertungen vieler Nutzer, um
+            Ähnlichkeiten zwischen Nutzern oder Produkten zu bestimmen – ohne
+            ausreichend Bewertungen entsteht das Kaltstartproblem. Inhaltsbasiertes
+            Filtern kommt dagegen ohne gesammelte Nutzerbewertungen aus, da es
+            stattdessen die Eigenschaften der Produkte selbst auswertet, etwa Autor
+            oder Keywords bei Büchern. Beide Ansätze lassen sich auch zu hybriden
+            Systemen kombinieren.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich Entscheidungsbäume von neuronalen Netzen hinsichtlich Nachvollziehbarkeit?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein Entscheidungsbaum ist laut Vorlesung ein White-Box-Modell: Jede
+            einzelne Entscheidung lässt sich am Pfad von der Wurzel zum Blatt genau
+            nachvollziehen und in einfache Wenn-Dann-Regeln übersetzen. Ein neuronales
+            Netz ist dagegen meist eine Black-Box: Warum genau eine bestimmte Ausgabe
+            zustande kommt, lässt sich aus den gelernten Gewichten kaum ablesen. Dafür
+            können neuronale Netze in der Regel komplexere, nichtlineare Zusammenhänge
+            abbilden, für die ein einzelner Entscheidungsbaum weniger geeignet ist.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie bauen einen Entscheidungsbaum auf einem Datensatz, bei dem kein Attribut die Entropie auf 0 senkt – was tun Sie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das bedeutet, dass keine der verfügbaren Zerlegungen zu vollständig
+            reinen Teilmengen führt. Ich würde trotzdem das Attribut mit dem größten
+            Gewinn an Ordnung wählen und rekursiv mit den verbleibenden Attributen
+            weiter verzweigen, bis entweder eine reine Teilmenge entsteht oder keine
+            Attribute mehr übrig sind. Für den letzten Fall würde ich die Erweiterung
+            aus Übung 10 nutzen: ein nicht reines Blatt erzeugen, das die im Blatt
+            häufigste Klasse als Vorhersage liefert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie entwickeln einen Online-Shop für ein neues Produktsortiment ohne bisherige Nutzerbewertungen – welchen Empfehlungsansatz wählen Sie, und warum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ohne vorhandene Nutzerbewertungen würde kollaboratives Filtern am
+            klassischen Kaltstartproblem scheitern, da keine Ähnlichkeiten zwischen
+            Nutzern oder Produkten berechnet werden können. Ich würde deshalb mit
+            inhaltsbasiertem Filtern starten, das allein auf Produkteigenschaften wie
+            Kategorie, Beschreibung oder Keywords basiert und keine
+            Bewertungshistorie benötigt. Sobald genügend Nutzerbewertungen vorliegen,
+            könnte ich zu einem hybriden System wechseln, das beide Ansätze kombiniert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie bauen ein Beratersystem, bei dem ein Berater sicherheitskritische Situationen erkennen soll – welches Kombinationskriterium wählen Sie für diesen Berater, und warum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Für einen sicherheitskritischen Berater würde ich das
+            Maximin-Kriterium in Betracht ziehen, das pessimistisch die am wenigsten
+            schlechte Bewertung wählt und damit riskante Aktionen vermeidet, oder dem
+            Berater ein starkes Vetorecht bei sicherheitsrelevanten Aktionen einräumen,
+            wie es die Vorlesung vorschlägt. Ein optimistisches Maximax-Kriterium wäre
+            hier ungeeignet, da es immer die beste Einzelbewertung wählt und damit
+            gerade die von einem sicherheitskritischen Berater erkannten Risiken
+            übergehen könnte.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Entropie mit Wahrscheinlichkeit
+        verwechseln:</span> Entropie misst die Unordnung einer ganzen Menge bezüglich
+        der Klassenzugehörigkeit, nicht die Wahrscheinlichkeit eines einzelnen
+        Ereignisses.</li>
+        <li><span class="as-achtung">Gewinn an Ordnung mit der Entropie selbst
+        verwechseln:</span> Der Gewinn ist die Differenz zwischen der Entropie vor und
+        der gewichteten Entropie nach einer Zerlegung, nicht die Entropie einer
+        einzelnen Teilmenge.</li>
+        <li><span class="as-achtung">Annehmen, das Attribut mit der niedrigsten
+        Teilmengen-Entropie sei automatisch das beste:</span> Entscheidend ist der
+        gewichtete Gewinn – eine kleine, reine Teilmenge kann weniger wiegen als eine
+        größere, weniger reine.</li>
+        <li><span class="as-achtung">Kollaboratives und inhaltsbasiertes Filtern
+        verwechseln:</span> Kollaboratives Filtern nutzt Bewertungen anderer Nutzer,
+        inhaltsbasiertes Filtern nutzt Produkteigenschaften unabhängig von
+        Bewertungen.</li>
+        <li><span class="as-achtung">Entscheidungsbäume für automatisch
+        overfitting-frei halten:</span> Zu kleinteilige Unterscheidungen (hohe Tiefe)
+        können eher Rauschen als echte Struktur abbilden.</li>
+        <li><span class="as-achtung">Beratersysteme für lernfähig wie neuronale Netze
+        halten:</span> Laut Vorlesung haben Beratersysteme keine automatische
+        Lernphase – die Zusammenhänge müssen manuell programmiert werden.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      // ---------- Daten & Entropie ----------
+
+      var DATEN = [
+        { sex: "m", age: 20, bp: "normal", med: "A" },
+        { sex: "f", age: 73, bp: "normal", med: "B" },
+        { sex: "f", age: 37, bp: "high", med: "A" },
+        { sex: "m", age: 33, bp: "low", med: "B" },
+        { sex: "f", age: 48, bp: "high", med: "A" },
+        { sex: "m", age: 29, bp: "normal", med: "A" },
+        { sex: "f", age: 52, bp: "normal", med: "B" },
+        { sex: "m", age: 42, bp: "low", med: "B" },
+        { sex: "m", age: 61, bp: "normal", med: "B" },
+        { sex: "f", age: 30, bp: "normal", med: "A" },
+        { sex: "f", age: 26, bp: "low", med: "B" },
+        { sex: "m", age: 54, bp: "high", med: "A" }
+      ];
+
+      function entropie(menge) {
+        if (menge.length === 0) return 0;
+        var counts = {};
+        menge.forEach(function (p) { counts[p.med] = (counts[p.med] || 0) + 1; });
+        var h = 0;
+        Object.keys(counts).forEach(function (k) {
+          var px = counts[k] / menge.length;
+          h += -px * Math.log2(px);
+        });
+        return h;
+      }
+
+      function gewinn(menge, splitFn) {
+        var gruppen = {};
+        menge.forEach(function (p) { var k = splitFn(p); (gruppen[k] = gruppen[k] || []).push(p); });
+        var hM = entropie(menge);
+        var gewichtete = 0;
+        Object.keys(gruppen).forEach(function (k) {
+          gewichtete += (gruppen[k].length / menge.length) * entropie(gruppen[k]);
+        });
+        return { gain: hM - gewichtete, gruppen: gruppen, hM: hM };
+      }
+
+      function buildDatenTabelle() {
+        var t = document.getElementById("daten-tabelle");
+        var kopf = document.createElement("tr");
+        ["#", "Sex", "Age", "Blood pressure", "Medicine"].forEach(function (h) {
+          var th = document.createElement("th"); th.textContent = h; kopf.appendChild(th);
+        });
+        t.appendChild(kopf);
+        DATEN.forEach(function (p, i) {
+          var row = document.createElement("tr");
+          [i + 1, p.sex, p.age, p.bp, p.med].forEach(function (v) {
+            var td = document.createElement("td"); td.textContent = v; row.appendChild(td);
+          });
+          t.appendChild(row);
+        });
+      }
+
+      // ---------- Baum-Rendering ----------
+
+      function knoten(id, label, x, y, klasse, unterzeile) {
+        return { id: id, label: label, x: x, y: y, klasse: klasse, unterzeile: unterzeile };
+      }
+
+      function drawBaum(step) {
+        var svg = document.getElementById("baum-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        if (step < 4) return;
+
+        var root = knoten("root", "Blood pressure", 150, 20, "baum-knoten");
+        var highLeaf = knoten("high", "Med A", 55, 100, "baum-blatt", "3×A, 0×B");
+        var lowLeaf = knoten("low", "Med B", 245, 100, "baum-blatt", "0×A, 3×B");
+
+        var kanten = [];
+        var alleKnoten = [root, highLeaf, lowLeaf];
+        kanten.push({ von: root, zu: highLeaf, label: "high" });
+        kanten.push({ von: root, zu: lowLeaf, label: "low" });
+
+        if (step < 6) {
+          var pending = knoten("normal", "normal (3×A,3×B)", 150, 100, "baum-pending", "weitere Aufteilung nötig");
+          alleKnoten.push(pending);
+          kanten.push({ von: root, zu: pending, label: "normal" });
+        } else {
+          var ageNode = knoten("age", "Age", 150, 100, "baum-knoten");
+          var le40 = knoten("le40", "Med A", 100, 180, "baum-blatt", "3×A, 0×B");
+          var gt40 = knoten("gt40", "Med B", 200, 180, "baum-blatt", "0×A, 3×B");
+          alleKnoten.push(ageNode, le40, gt40);
+          kanten.push({ von: root, zu: ageNode, label: "normal" });
+          kanten.push({ von: ageNode, zu: le40, label: "≤40" });
+          kanten.push({ von: ageNode, zu: gt40, label: ">40" });
+        }
+
+        kanten.forEach(function (k) {
+          svg.appendChild(svgEl("line", { x1: k.von.x, y1: k.von.y + 12, x2: k.zu.x, y2: k.zu.y - 12, class: "baum-kante" }));
+          svg.appendChild(svgEl("text", { x: (k.von.x + k.zu.x) / 2, y: (k.von.y + k.zu.y) / 2, class: "baum-text--klein" })).textContent = k.label;
+        });
+
+        alleKnoten.forEach(function (n) {
+          svg.appendChild(svgEl("rect", { x: n.x - 45, y: n.y - 12, width: 90, height: 24, rx: 5, class: n.klasse }));
+          svg.appendChild(svgEl("text", { x: n.x, y: n.y + 3, class: "baum-text" })).textContent = n.label;
+          if (n.unterzeile) {
+            svg.appendChild(svgEl("text", { x: n.x, y: n.y + 22, class: "baum-text--klein" })).textContent = n.unterzeile;
+          }
+        });
+      }
+
+      // ---------- Gewinn-Tabelle ----------
+
+      function renderGewinnTabelle(step) {
+        var t = document.getElementById("gewinn-tabelle");
+        t.innerHTML = "";
+        if (step < 2) return;
+
+        var basis = step < 5 ? DATEN : DATEN.filter(function (p) { return p.bp === "normal"; });
+        var kandidaten;
+        if (step < 5) {
+          kandidaten = [
+            { name: "Blood pressure", fn: function (p) { return p.bp; } },
+            { name: "Sex", fn: function (p) { return p.sex; } },
+            { name: "Age (≤40/>40)", fn: function (p) { return p.age <= 40 ? "≤40" : ">40"; } }
+          ];
+        } else {
+          kandidaten = [
+            { name: "Sex", fn: function (p) { return p.sex; } },
+            { name: "Age (≤40/>40)", fn: function (p) { return p.age <= 40 ? "≤40" : ">40"; } }
+          ];
+        }
+
+        var kopf = document.createElement("tr");
+        ["Attribut", "Gewinn an Ordnung H_G"].forEach(function (h) {
+          var th = document.createElement("th"); th.textContent = h; kopf.appendChild(th);
+        });
+        t.appendChild(kopf);
+
+        var ergebnisse = kandidaten.map(function (k) { return { name: k.name, gain: gewinn(basis, k.fn).gain }; });
+        var bester = ergebnisse.reduce(function (b, e) { return e.gain > b.gain ? e : b; }, ergebnisse[0]);
+
+        ergebnisse.forEach(function (e) {
+          var row = document.createElement("tr");
+          if ((step === 3 || step === 5) && e.name === bester.name) row.dataset.sieger = "true";
+          var tdName = document.createElement("td"); tdName.textContent = e.name; row.appendChild(tdName);
+          var tdGain = document.createElement("td"); tdGain.textContent = e.gain.toFixed(3); row.appendChild(tdGain);
+          t.appendChild(row);
+        });
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Zwölf Patienten sollen anhand von Geschlecht, Alter und Blutdruck einem Medikament (A oder B) zugeordnet werden.",
+        "Die Entropie der Gesamtmenge H(M) wird berechnet: 6× A und 6× B ergeben die maximale Unordnung H(M) = 1.",
+        "Für jedes der drei Attribute – Blood pressure, Sex, Age – wird der Gewinn an Ordnung berechnet, den eine Zerlegung danach erzielen würde.",
+        "Blood pressure erzielt den größten Gewinn an Ordnung und wird als Wurzelattribut gewählt.",
+        "Die Zweige „high“ und „low“ sind bereits rein (nur Medikament A bzw. nur B) und werden zu Blättern. Der Zweig „normal“ ist noch gemischt (3×A, 3×B) und braucht eine weitere Aufteilung.",
+        "Für die „normal“-Teilmenge wird erneut der Gewinn an Ordnung berechnet – diesmal nur noch für Sex und Age, da Blood pressure bereits verwendet wurde.",
+        "Age erzielt hier den größten – sogar perfekten – Gewinn an Ordnung und wird gewählt. Sex hätte keine reinen Teilmengen erzeugt und spielt im fertigen Baum keine Rolle."
+      ];
+
+      function renderEntropieInfo(step) {
+        var info = document.getElementById("entropie-info");
+        if (step < 1) {
+          info.textContent = "";
+        } else if (step < 5) {
+          info.textContent = "H(M) gesamt = " + entropie(DATEN).toFixed(3) + " (6×A, 6×B) – maximale Unordnung, beide Klassen gleich häufig.";
+        } else {
+          var normal = DATEN.filter(function (p) { return p.bp === "normal"; });
+          info.textContent = "H(normal) = " + entropie(normal).toFixed(3) + " (3×A, 3×B) – die „normal“-Teilmenge ist noch vollständig ungeordnet.";
+        }
+      }
+
+      function render(step) {
+        buildDatenTabelle();
+        drawBaum(step);
+        renderGewinnTabelle(step);
+        renderEntropieInfo(step);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

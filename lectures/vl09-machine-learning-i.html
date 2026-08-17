@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 09 – Machine Learning I · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .wl-svg { width: 100%; max-width: 300px; height: 300px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .wl-kreis { fill: none; stroke: var(--as-rahmen); stroke-width: 1; stroke-dasharray: 2 2; }
+    .wl-vektor { stroke-width: 2; }
+    .wl-vektor--w1 { stroke: var(--as-begriff); }
+    .wl-vektor--w2 { stroke: var(--as-ablauf); }
+    .wl-vektor--w3 { stroke: var(--as-text-gedaempft); }
+    .wl-vektor--x { stroke: var(--as-akzent); stroke-width: 2.4; }
+    .wl-vektor--zwischenschritt { stroke: var(--as-akzent); stroke-width: 1.4; stroke-dasharray: 3 2; opacity: 0.8; }
+    .wl-vektor--gewinner { stroke-width: 3.2; }
+    .wl-text { font-size: 8px; fill: var(--as-text); }
+    .wl-werte { margin-top: var(--as-abstand-s); font-size: 0.82rem; }
+    .wl-werte div { margin-bottom: 0.2em; }
+    .wl-werte .gewinner-zeile { color: var(--as-akzent); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 09 – Machine Learning I</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Maschinelles Lernen unterscheidet zwischen überwachtem Lernen mit bekannten
+        Zielwerten und unüberwachtem Lernen, das verborgene Strukturen in den Daten
+        selbst finden muss. Wettbewerbslernen ist die einfachste Form davon:
+        Ausgabeneuronen konkurrieren um jede Eingabe, und nur das Neuron mit der
+        größten Aktivität – der Gewinner – verschiebt seinen Gewichtsvektor in Richtung
+        der Eingabe. Self-Organizing Maps, Support Vector Machines und Support Vector
+        Clustering erweitern dieses Grundprinzip um Nachbarschaftsbeziehungen,
+        maximale Trennränder beziehungsweise Clustergrenzen im transformierten
+        Merkmalsraum.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Überwachtes Lernen</dt><dd>Lernen anhand von Trainingsmustern mit bekanntem Zielwert.</dd></div>
+        <div><dt>Unüberwachtes Lernen</dt><dd>Lernen ohne bekannten Zielwert – das System muss verborgene Strukturen selbst finden.</dd></div>
+        <div><dt>Wettbewerbslernen</dt><dd>Einfachste Form unüberwachten Klassifizierens; Ausgabeneuronen konkurrieren um jede Eingabe.</dd></div>
+        <div><dt>Gewinnerneuron</dt><dd>Das Ausgabeneuron mit der größten Aktivität bei einer gegebenen Eingabe.</dd></div>
+        <div><dt>Self-Organizing Map (SOM) / Kohonen-Netz</dt><dd>Erweiterung des Wettbewerbslernens mit topologisch angeordneten Ausgabeneuronen, bei der auch Nachbarn des Gewinners mitlernen.</dd></div>
+        <div><dt>Nachbarschaftsfunktion</dt><dd>Bestimmt, wie stark benachbarte Neuronen eines Gewinners bei einer SOM mitlernen, abhängig von ihrer topologischen Distanz.</dd></div>
+        <div><dt>Support Vector Machine (SVM)</dt><dd>Überwachtes Klassifikationsverfahren, das die Hyperebene mit dem größten Rand (Maximum Margin) zwischen zwei Klassen sucht.</dd></div>
+        <div><dt>Stützvektoren (Support Vectors)</dt><dd>Die Datenpunkte, die dem Rand am nächsten liegen und die trennende Hyperebene festlegen.</dd></div>
+        <div><dt>Soft Margin</dt><dd>Erlaubt bei verrauschten Daten kontrollierte Fehlklassifikationen im Rand, statt einen harten Rand zu erzwingen.</dd></div>
+        <div><dt>Kernel-Trick</dt><dd>Berechnet das Skalarprodukt in einem höherdimensionalen Merkmalsraum, ohne die Transformation explizit durchzuführen.</dd></div>
+        <div><dt>Support Vector Clustering (SVC)</dt><dd>Unüberwachtes Verfahren, das Clustergrenzen über eine Kugel im transformierten Merkmalsraum und deren Rücktransformation findet.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>Wettbewerbslernen</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Ausgabeneuronen</dt><dd>Konkurrieren um jede Eingabe, jedes repräsentiert potenziell eine Klasse.</dd></div>
+        <div class="bestandteil"><dt>Aktivität eines Neurons</dt><dd>Skalarprodukt bei normalisierten Vektoren bzw. negative euklidische Distanz zwischen Gewichts- und Eingabevektor.</dd></div>
+        <div class="bestandteil"><dt>Gewinner-Update</dt><dd>Nur die Gewichte des Gewinnerneurons werden in Richtung der Eingabe verschoben, alle anderen bleiben unverändert.</dd></div>
+      </dl>
+
+      <h3>Self-Organizing Map</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Topologische Anordnung</dt><dd>Ausgabeneuronen sind z. B. in einem 2D-Gitter angeordnet.</dd></div>
+        <div class="bestandteil"><dt>Nachbarschaftsfunktion θ(m,n,t)</dt><dd>Bestimmt, wie stark ein Neuron n abhängig von seiner Distanz zum Gewinner m mitlernt.</dd></div>
+        <div class="bestandteil"><dt>Zeitabhängige Lernrate/Nachbarschaftsgröße</dt><dd>Beide schrumpfen typischerweise mit der Zeit.</dd></div>
+      </dl>
+
+      <h3>Support Vector Machine</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Maximum-Margin-Hyperebene</dt><dd>Die Hyperebene mit größtem Abstand zu allen Punkten.</dd></div>
+        <div class="bestandteil"><dt>Stützvektoren</dt><dd>Legen die Hyperebene fest, alle anderen Punkte sind für ihre Lage irrelevant.</dd></div>
+        <div class="bestandteil"><dt>Kernel-Trick</dt><dd>Erlaubt nichtlineare Klassifikation durch implizite Transformation in einen höherdimensionalen Raum.</dd></div>
+      </dl>
+
+      <h3>Support Vector Clustering</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Kugel im Merkmalsraum</dt><dd>Umschließt die transformierten Datenpunkte, ihre Oberfläche definiert die Support Vectors.</dd></div>
+        <div class="bestandteil"><dt>Rücktransformation</dt><dd>Bildet die Kugelgrenze zurück in den ursprünglichen Datenraum ab und liefert so Clustergrenzen.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+      <p>Der Praktikumsschwerpunkt liegt auf dem einfachen Wettbewerbslernen:</p>
+      <ol class="ablauf-liste">
+        <li>Alle Eingabevektoren werden normalisiert, die Gewichtsvektoren zufällig initialisiert und ebenfalls normalisiert.</li>
+        <li>Für ein zufällig gewähltes Eingabemuster wird die Aktivität jedes Ausgabeneurons berechnet – das Skalarprodukt mit dem jeweiligen Gewichtsvektor.</li>
+        <li>Das Neuron mit der größten Aktivität wird zum Gewinner erklärt.</li>
+        <li>Nur der Gewichtsvektor des Gewinners wird in Richtung der Eingabe verschoben und anschließend wieder normalisiert; alle anderen Gewichte bleiben unverändert.</li>
+        <li>Dieser Schritt wiederholt sich für viele Eingabemuster, bis sich die Gewichtsvektoren stabilisieren – jedes Ausgabeneuron wird so zum Spezialisten für eine Gruppe ähnlicher Eingaben.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Das Gewinnerneuron und die Verschiebung der Gewichte</h2>
+      <p>
+        Zur Visualisierung werden hier drei Gewichtsvektoren in zwei statt vielen
+        Dimensionen gezeigt – im Zoo-Datensatz aus Übung 9 hat jedes Tier viele
+        Merkmale, das Prinzip ist aber identisch.
+      </p>
+
+      <svg class="wl-svg" id="wl-svg" viewBox="-160 -160 320 320"></svg>
+      <div class="wl-werte" id="wl-werte"></div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Das einfache Wettbewerbslernen unter
+        Ausnutzung normalisierter Eingabe- und Gewichtsvektoren implementieren und mit
+        dem Zoo-Datensatz überprüfen. Der Algorithmus sollte am Ende für jede Eingabe
+        (jedes Tier) eine Klasse ausgeben; zu prüfen war, welche Gemeinsamkeiten Tiere
+        derselben Klasse haben. Empfohlen wurden deutlich mehr Ausgabeneuronen (Größenordnung
+        10 bis 100) als am Ende tatsächlich genutzte Klassen, sowie 10.000 bis 100.000
+        Lernschritte.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Die Animation in Abschnitt 5 zeigt
+        genau den Mechanismus – Aktivität berechnen, Gewinner bestimmen, nur den
+        Gewinner verschieben und normalisieren – an einem winzigen, zweidimensionalen
+        Beispiel. Der Zoo-Datensatz nutzt denselben Algorithmus, nur mit vielen
+        Merkmalsdimensionen statt zwei.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Der Hinweis, deutlich mehr
+        Ausgabeneuronen zu verwenden als am Ende erwartete Klassen, hat einen konkreten
+        Grund: Manche Neuronen gewinnen nie, weil sie von Anfang an ungünstig
+        initialisiert sind – genau dieses Problem motiviert die Nachbarschaftsfunktion
+        der Self-Organizing Maps in Abschnitt 3.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>Zoo-Datensatz-Strang:</strong> Übung 9 (Wettbewerbslernen, dieses Modul)
+        → Übung 10 (Entscheidungsbaum, VL 10) → Übung 11 (k-Means/kNN, VL 11) – alle
+        drei nutzen denselben Zoo-Datensatz. Gemeinsame Vergleichsfrage: überwacht oder
+        unüberwacht? Wettbewerbslernen und k-Means sind unüberwacht, der
+        Entscheidungsbaum überwacht.
+      </p>
+      <p>
+        <strong>VL 07 – Neuronale Netze I:</strong> Wettbewerbslernen nutzt wie das
+        MCP-Neuron die Hebbsche Lernregel – allerdings nur für das Gewinnerneuron im
+        Wettbewerb, nicht für jede gleichzeitige Aktivierung.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Wettbewerbslernen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Wettbewerbslernen ist die einfachste Form des unüberwachten
+            Klassifizierens in einem einschichtigen neuronalen Netz. Für jede Eingabe
+            konkurrieren alle Ausgabeneuronen miteinander, indem ihre Aktivität – meist
+            das Skalarprodukt zwischen Gewichts- und Eingabevektor – berechnet wird.
+            Nur das Neuron mit der höchsten Aktivität, der Gewinner, passt seine
+            Gewichte in Richtung der Eingabe an, alle übrigen Gewichte bleiben
+            unverändert, sodass jedes Neuron über die Zeit zum Spezialisten für eine
+            Gruppe ähnlicher Eingaben wird.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einer Self-Organizing Map, und was löst sie am Problem des einfachen Wettbewerbslernens?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Self-Organizing Map erweitert das einfache Wettbewerbslernen, indem
+            die Ausgabeneuronen nicht unabhängig voneinander, sondern topologisch
+            angeordnet sind, meist in einem ein- oder zweidimensionalen Gitter. Beim
+            Lernen passt sich nicht nur das Gewinnerneuron an, sondern auch seine
+            Nachbarn im Gitter, gewichtet über eine Nachbarschaftsfunktion. Das löst
+            zwei Probleme des einfachen Wettbewerbslernens: dass manche Neuronen nie
+            gewinnen und deshalb nie lernen, und dass die Ähnlichkeit zwischen Eingaben
+            sonst nicht auf die Anordnung der Ausgabe übertragen wird.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter den Stützvektoren (Support Vectors) einer Support Vector Machine?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Stützvektoren sind die Datenpunkte, die der trennenden Hyperebene am
+            nächsten liegen und damit ihren Verlauf und ihren Rand (Margin) festlegen.
+            Alle anderen, weiter entfernten Punkte sind für die Lage der Hyperebene
+            irrelevant – sie könnten entfernt werden, ohne dass sich die Lösung ändert.
+            Namensgebend für die Support Vector Machine ist genau dieses Prinzip: Die
+            Maschine wird über ihre Stützvektoren definiert, nicht über die gesamte
+            Trainingsmenge.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich überwachtes von unüberwachtem Lernen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Beim überwachten Lernen sind die Klassen beziehungsweise Zielwerte der
+            Trainingsmuster bekannt – das System ordnet Eingabemuster einer bereits
+            bekannten Klasse zu, und das Ergebnis lässt sich mit Testmustern objektiv
+            überprüfen. Beim unüberwachten Lernen ist der Zusammenhang der
+            Trainingsmuster dagegen unbekannt; das System muss versteckte Strukturen in
+            den Eingaben selbst identifizieren und danach klassifizieren, wodurch sich
+            das Ergebnis nicht automatisiert gegen eine bekannte Lösung prüfen lässt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Wettbewerbslernen von einer Self-Organizing Map?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei einfachem Wettbewerbslernen sind die Ausgabeneuronen unabhängig
+            voneinander, und ausschließlich das Gewinnerneuron wird bei jedem Schritt
+            angepasst. Bei einer Self-Organizing Map sind die Ausgabeneuronen
+            zusätzlich topologisch angeordnet, und über eine Nachbarschaftsfunktion
+            lernen auch die Nachbarn des Gewinners mit, wenn auch schwächer. Eine SOM
+            ist damit eine strukturelle Erweiterung des Wettbewerbslernens um
+            Nachbarschaftsbeziehungen, kein grundsätzlich anderes Verfahren.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich Support Vector Machine und Support Vector Clustering?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Support Vector Machine ist ein überwachtes Verfahren: Sie benötigt
+            bekannte Klassenzugehörigkeiten, um die Maximum-Margin-Hyperebene zwischen
+            den Klassen zu bestimmen. Support Vector Clustering ist dagegen
+            unüberwacht: Es transformiert die Datenpunkte in einen höherdimensionalen
+            Merkmalsraum, identifiziert dort eine umschließende Kugel und findet über
+            deren Rücktransformation Clustergrenzen, ohne dass vorher bekannte Klassen
+            nötig wären. Beide nutzen dieselbe Grundidee der Transformation in einen
+            höherdimensionalen Raum, aber zu unterschiedlichen Zwecken.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten Kunden eines Unternehmens nach ihrem Kaufverhalten gruppieren, ohne vorher zu wissen, welche Gruppen es gibt – welches Lernparadigma und welches Verfahren wählen Sie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Da die Gruppen vorab unbekannt sind, ist das ein klassischer Fall für
+            unüberwachtes Lernen, konkret Clustering. Ich würde mit Wettbewerbslernen
+            oder, falls die Beziehungen zwischen den entstehenden Kundengruppen auch
+            interessant sind, mit einer Self-Organizing Map arbeiten, die zusätzlich
+            ähnliche Cluster benachbart im Gitter anordnet. Das entspricht genau dem in
+            der Vorlesung genannten Anwendungsbeispiel der Marktanalyse, bei der ein
+            Kundenstamm nach Kaufverhalten in Cluster eingeteilt wird.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Bei Ihrem Wettbewerbslernen gewinnen nach dem Training nur 3 von 20 Ausgabeneuronen jemals – ist das ein Problem, und wie beheben Sie es?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das ist ein bekanntes Problem des einfachen Wettbewerbslernens: Manche
+            Neuronen sind von Anfang an so ungünstig initialisiert, dass sie nie die
+            höchste Aktivität erreichen und deshalb nie lernen. Eine Lösung ist der
+            Wechsel zu einer Self-Organizing Map, bei der über die Nachbarschaftsfunktion
+            auch benachbarte Neuronen eines Gewinners mitlernen und sich dadurch mit der
+            Zeit über den gesamten Merkmalsraum verteilen. Alternativ könnte ich auch
+            die Initialisierung der Gewichte näher an den tatsächlichen Eingabedaten
+            orientieren, statt rein zufällig zu starten.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihre Trainingsdaten sind nicht linear separierbar, Sie möchten aber trotzdem eine Support Vector Machine einsetzen – wie gehen Sie vor?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ich würde die Eingabedaten über eine Transformationsfunktion Φ in einen
+            höherdimensionalen Merkmalsraum abbilden, in dem sie möglicherweise doch
+            linear separierbar sind – ein klassisches Beispiel ist die Abbildung
+            x ↦ (x, x²), die aus einer eindimensionalen, nicht separierbaren Punktmenge
+            eine im zweidimensionalen Raum separierbare macht. Da die direkte Berechnung
+            dieser Transformation aufwendig sein kann, würde ich den Kernel-Trick nutzen,
+            der das benötigte Skalarprodukt im höherdimensionalen Raum über eine
+            Kernelfunktion direkt berechnet, ohne Φ explizit auszuwerten.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Wettbewerbslernen mit der Hebbschen Lernregel aus
+        VL 07 gleichsetzen:</span> Beide beruhen auf einer ähnlichen Grundidee, aber
+        beim Wettbewerbslernen wird nur das Gewinnerneuron angepasst, während die
+        Hebbsche Regel bei jeder gleichzeitigen Aktivierung verstärkt.</li>
+        <li><span class="as-achtung">Annehmen, alle Ausgabeneuronen beim
+        Wettbewerbslernen lernen gleich viel:</span> Nur der Gewinner wird verschoben,
+        alle anderen bleiben unverändert – das kann dazu führen, dass manche Neuronen
+        nie gewinnen.</li>
+        <li><span class="as-achtung">Eine Self-Organizing Map für ein überwachtes
+        Verfahren halten:</span> Wie das Wettbewerbslernen ist eine SOM unüberwacht, es
+        gibt keinen bekannten Zielwert.</li>
+        <li><span class="as-achtung">Stützvektoren mit „allen Trainingspunkten"
+        verwechseln:</span> Nur die Punkte am Rand, die der Hyperebene am nächsten
+        liegen, sind Stützvektoren und bestimmen deren Lage.</li>
+        <li><span class="as-achtung">Den Kernel-Trick für eine Vereinfachung des
+        Problems halten:</span> Er löst nur das Rechenproblem des teuren
+        Skalarprodukts im höherdimensionalen Raum, ändert aber nichts an der
+        grundlegenden Idee der Transformation in einen höherdimensionalen
+        Merkmalsraum.</li>
+        <li><span class="as-achtung">SVM und SVC verwechseln:</span> SVM ist
+        überwachtes Lernen für Klassifikation mit bekannten Klassen, SVC ist
+        unüberwachtes Clustering ohne bekannte Klassen.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+      function norm(v) { var m = Math.hypot(v[0], v[1]); return [v[0] / m, v[1] / m]; }
+      function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+
+      var START = {
+        w1: [1, 0],
+        w2: norm([-1, 1]),
+        w3: [0, -1]
+      };
+      var X1 = norm([1, 2]);
+      var X2 = norm([1, 1.5]);
+      var ETA = 0.5;
+
+      function berechneZustand(step) {
+        var neuronen = { w1: START.w1.slice(), w2: START.w2.slice(), w3: START.w3.slice() };
+        var akt1 = {};
+        Object.keys(neuronen).forEach(function (k) { akt1[k] = dot(neuronen[k], X1); });
+        var gewinner1 = Object.keys(akt1).reduce(function (b, k) { return akt1[k] > akt1[b] ? k : b; }, "w1");
+        var unnormalisiert = [neuronen[gewinner1][0] + ETA * X1[0], neuronen[gewinner1][1] + ETA * X1[1]];
+        var neuPosition = norm(unnormalisiert);
+
+        var ergebnis = { neuronen: neuronen, akt1: akt1, gewinner1: gewinner1, unnormalisiert: unnormalisiert, x: X1 };
+
+        if (step >= 4) {
+          ergebnis.neuronen = { w1: neuronen.w1.slice(), w2: neuronen.w2.slice(), w3: neuronen.w3.slice() };
+          ergebnis.neuronen[gewinner1] = neuPosition;
+        }
+        if (step >= 5) {
+          ergebnis.x = X2;
+          var akt2 = {};
+          Object.keys(ergebnis.neuronen).forEach(function (k) { akt2[k] = dot(ergebnis.neuronen[k], X2); });
+          var gewinner2 = Object.keys(akt2).reduce(function (b, k) { return akt2[k] > akt2[b] ? k : b; }, "w1");
+          ergebnis.akt2 = akt2;
+          ergebnis.gewinner2 = gewinner2;
+        }
+        ergebnis.neuPosition = neuPosition;
+        return ergebnis;
+      }
+
+      function pt(v, r) { return [v[0] * r, -v[1] * r]; }
+
+      function render(step) {
+        var svg = document.getElementById("wl-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var R = 90;
+        svg.appendChild(svgEl("circle", { cx: 0, cy: 0, r: R, class: "wl-kreis" }));
+
+        var z = berechneZustand(step);
+
+        Object.keys(z.neuronen).forEach(function (k) {
+          var p = pt(z.neuronen[k], R);
+          var istGewinner = step >= 2 && (k === z.gewinner1) && step < 5;
+          var istGewinnerSpaeter = step >= 5 && k === z.gewinner2;
+          svg.appendChild(svgEl("line", {
+            x1: 0, y1: 0, x2: p[0], y2: p[1],
+            class: "wl-vektor wl-vektor--" + k + ((istGewinner || istGewinnerSpaeter) ? " wl-vektor--gewinner" : "")
+          }));
+          svg.appendChild(svgEl("text", { x: p[0] * 1.15, y: -p[1] * 1.15, class: "wl-text" })).textContent = k;
+        });
+
+        var xLabelPos = pt(z.x, R);
+        svg.appendChild(svgEl("line", { x1: 0, y1: 0, x2: xLabelPos[0], y2: xLabelPos[1], class: "wl-vektor--x" }));
+        svg.appendChild(svgEl("text", { x: xLabelPos[0] * 1.15, y: -xLabelPos[1] * 1.15, class: "wl-text" })).textContent = step >= 5 ? "x₂" : "x₁";
+
+        if (step === 3) {
+          svg.appendChild(svgEl("line", { x1: 0, y1: 0, x2: z.unnormalisiert[0] * R, y2: -z.unnormalisiert[1] * R, class: "wl-vektor--zwischenschritt" }));
+          svg.appendChild(svgEl("text", { x: z.unnormalisiert[0] * R * 1.1, y: -z.unnormalisiert[1] * R * 1.1, class: "wl-text" })).textContent = "w+ηx (noch nicht normiert)";
+        }
+
+        var werte = document.getElementById("wl-werte");
+        werte.innerHTML = "";
+        var zeilen = [];
+        if (step >= 1) {
+          zeilen.push("Aktivität(w₁,x₁)=" + z.akt1.w1.toFixed(3) + "  Aktivität(w₂,x₁)=" + z.akt1.w2.toFixed(3) + "  Aktivität(w₃,x₁)=" + z.akt1.w3.toFixed(3));
+        }
+        if (step >= 2) {
+          zeilen.push("<span class='gewinner-zeile'>Gewinner: " + z.gewinner1 + "</span>");
+        }
+        if (step === 3) {
+          zeilen.push("w_neu (unnormiert) = w + η·x₁ = (" + z.unnormalisiert[0].toFixed(3) + ", " + z.unnormalisiert[1].toFixed(3) + ")");
+        }
+        if (step >= 4) {
+          zeilen.push("<span class='gewinner-zeile'>" + z.gewinner1 + " normiert = (" + z.neuPosition[0].toFixed(3) + ", " + z.neuPosition[1].toFixed(3) + ")</span>");
+        }
+        if (step >= 5) {
+          zeilen.push("Neue, ähnliche Eingabe x₂ – Aktivität(w₁)=" + z.akt2.w1.toFixed(3) + "  Aktivität(w₂)=" + z.akt2.w2.toFixed(3) + "  Aktivität(w₃)=" + z.akt2.w3.toFixed(3));
+          zeilen.push("<span class='gewinner-zeile'>Erneuter Gewinner: " + z.gewinner2 + " (" + (z.gewinner2 === z.gewinner1 ? "derselbe wie zuvor" : "ein anderer") + ")</span>");
+        }
+        zeilen.forEach(function (t) {
+          var div = document.createElement("div");
+          div.innerHTML = t;
+          werte.appendChild(div);
+        });
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      var SCHRITTE = [
+        "Drei Gewichtsvektoren w₁, w₂, w₃ liegen normiert auf dem Einheitskreis. Eine erste Eingabe x₁ trifft ein.",
+        "Die Aktivität jedes Neurons ist das Skalarprodukt seines Gewichtsvektors mit x₁ – bei normierten Vektoren entspricht das dem Kosinus des eingeschlossenen Winkels.",
+        "Das Neuron mit der höchsten Aktivität – dem kleinsten Winkel zu x₁ – wird zum Gewinner erklärt.",
+        "Nur der Gewichtsvektor des Gewinners wird in Richtung x₁ verschoben: w_neu = w + η·x₁. Das Ergebnis liegt noch nicht auf dem Einheitskreis.",
+        "Der verschobene Vektor wird wieder auf Länge 1 normiert – der Gewinner liegt jetzt näher an x₁ als zuvor, alle anderen Gewichte sind unverändert geblieben.",
+        "Eine zweite, ähnliche Eingabe x₂ trifft ein: Derselbe Gewinner setzt sich erneut durch – er repräsentiert jetzt zuverlässiger diesen Bereich des Eingaberaums."
+      ];
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

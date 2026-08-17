@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 05 – Evolutionäre Algorithmen III · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .ea-teil { margin-bottom: var(--as-abstand-l); }
+    .ea-teil__titel { font-weight: 600; color: var(--as-ablauf); margin-bottom: var(--as-abstand-s); }
+
+    .ls-charts { display: flex; flex-wrap: wrap; gap: var(--as-abstand-m); }
+    .ls-chart { flex: 1 1 260px; text-align: center; }
+    .ls-chart svg { width: 100%; max-width: 320px; height: 140px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .ls-chart__label { font-size: 0.8rem; font-weight: 600; margin-top: 0.3em; }
+    .ls-kurve { fill: none; stroke: var(--as-rahmen-stark, var(--as-rahmen)); stroke-width: 1.5; }
+    .ls-pfad { fill: none; stroke: var(--as-akzent); stroke-width: 1.6; opacity: 0.7; }
+    .ls-punkt-alt { fill: var(--as-text-gedaempft); opacity: 0.5; }
+    .ls-punkt-aktuell { fill: var(--as-akzent); }
+    .ls-punkt-lokal, .ls-punkt-global { fill: var(--as-ablauf); }
+
+    .hk-row { display: flex; align-items: center; gap: var(--as-abstand-m); margin-bottom: var(--as-abstand-s); flex-wrap: wrap; }
+    .hk-row[data-versteckt="true"] { display: none; }
+    .hk-label { flex: 0 0 5rem; font-weight: 600; font-size: 0.85rem; }
+    .hk-bits { display: flex; gap: 4px; }
+    .hk-bit { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--as-radius-s); border: 1px solid var(--as-rahmen); background: var(--as-flaeche-erhoeht); font-family: var(--as-schrift-mono); font-weight: 600; }
+    .hk-bit[data-diff="true"] { border-color: var(--as-achtung); background: color-mix(in srgb, var(--as-achtung) 15%, var(--as-flaeche)); color: var(--as-achtung); }
+    .hk-hinweis { font-size: 0.8rem; color: var(--as-text-gedaempft); margin: 0; }
+
+    .es-row { display: flex; align-items: flex-end; gap: var(--as-abstand-l); margin-bottom: var(--as-abstand-s); }
+    .es-item { text-align: center; }
+    .es-kreis { border-radius: 50%; background: var(--as-akzent-gedeckt); border: 2px solid var(--as-akzent); margin: 0 auto; }
+    .es-label { font-size: 0.8rem; margin-top: 0.4em; color: var(--as-text-gedaempft); }
+    .es-item[data-versteckt="true"] { display: none; }
+
+    .gp-baum { width: 100%; max-width: 420px; height: 170px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .gp-knoten { fill: var(--as-flaeche); stroke: var(--as-begriff); stroke-width: 1.4; }
+    .gp-knoten--neu { stroke: var(--as-akzent); }
+    .gp-kante { stroke: var(--as-rahmen); stroke-width: 1.2; }
+    .gp-text { font-size: 8px; text-anchor: middle; fill: var(--as-text); }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 05 – Evolutionäre Algorithmen III</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        VL 05 stellt drei eigenständige Ausprägungen des EA-Grundzyklus aus VL 03 vor –
+        genetische Algorithmen, Evolutionsstrategien und genetische Programmierung –
+        sowie mit der lokalen Suche eine vereinfachte Variante mit nur einem Eltern- und
+        einem Kindindividuum. Alle vier Verfahren folgen demselben Grundprinzip aus
+        Mutation, Rekombination und Selektion, unterscheiden sich aber in der Darstellung
+        der Individuen und in den passenden Operatoren. Besonders die lokale Suche ist
+        praxisrelevant: Über die Wahl der Akzeptanzbedingung lässt sich steuern, wie
+        leicht das Verfahren aus einem lokalen Optimum wieder herausfindet.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Genetischer Algorithmus (GA)</dt><dd>Standardvariante eines EA mit Bitstring-Genotyp, meist k-Punkt-Crossover, fitnessproportionaler Selektion und binärer Mutation.</dd></div>
+        <div><dt>Hamming-Klippe</dt><dd>Unstetigkeit einer Kodierung, bei der inhaltlich benachbarte Lösungen in der gewählten Darstellung weit auseinanderliegen.</dd></div>
+        <div><dt>Evolutionsstrategie (ES)</dt><dd>EA-Variante mit reellwertigem Vektor als Genotyp und normalverteilter Mutation.</dd></div>
+        <div><dt>Strategiekomponente σ</dt><dd>Die Schrittweite der Mutation bei einer Evolutionsstrategie.</dd></div>
+        <div><dt>1/5-Erfolgsregel</dt><dd>Passt σ automatisch an, je nachdem wie viele der letzten Mutationen erfolgreich waren.</dd></div>
+        <div><dt>(μ/ρ+λ)- bzw. (μ/ρ,λ)-ES</dt><dd>Notation dafür, wie viele Eltern wie viele Nachkommen erzeugen und ob die Umweltselektion Eltern mit einschließt.</dd></div>
+        <div><dt>Genetische Programmierung (GP)</dt><dd>EA-Variante, bei der Individuen als Syntaxbäume – also als Programme – statt als Wertefolgen dargestellt werden.</dd></div>
+        <div><dt>Terminal-/Nichtterminalsymbol</dt><dd>Blätter (Konstanten/Variablen) beziehungsweise innere Knoten (Funktionen) eines Syntaxbaums.</dd></div>
+        <div><dt>Automatic Defined Function (ADF)</dt><dd>Unterbaum in der genetischen Programmierung, der wie eine wiederverwendbare Funktion im Hauptprogramm eingesetzt wird.</dd></div>
+        <div><dt>Lokale Suche</dt><dd>Vereinfachte EA-Variante mit nur einem Eltern- und einem Kindindividuum, die eine Akzeptanzbedingung statt einer vollständigen Selektion nutzt.</dd></div>
+        <div><dt>Akzeptanzbedingung</dt><dd>Regel, die festlegt, wann ein neuer Kandidat das aktuelle Individuum ersetzt – auch bei einer Verschlechterung.</dd></div>
+        <div><dt>Simulated Annealing</dt><dd>Akzeptiert Verschlechterungen mit einer Wahrscheinlichkeit, die mit sinkender „Temperatur" über die Zeit abnimmt.</dd></div>
+        <div><dt>Schwellwertakzeptanz</dt><dd>Akzeptiert Verschlechterungen nur, solange sie kleiner als ein mit der Zeit sinkender Schwellwert sind.</dd></div>
+        <div><dt>Record-to-Record Travel</dt><dd>Wie Schwellwertakzeptanz, bezieht die erlaubte Verschlechterung aber auf das bisher beste gefundene Individuum.</dd></div>
+        <div><dt>Great Deluge</dt><dd>Akzeptiert alle Lösungen oberhalb eines mit der Zeit steigenden Gütepegels.</dd></div>
+        <div><dt>Tabu-Suche</dt><dd>Verhindert die Rückkehr zu kürzlich besuchten Lösungskandidaten über eine Tabu-Liste.</dd></div>
+        <div><dt>Memetischer Algorithmus</dt><dd>EA, bei dem neue Lösungskandidaten vor der Umweltselektion zusätzlich mit lokaler Suche verfeinert werden.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Genetische Algorithmen</dt><dd>Bitstring-Genotyp mit Dekodierfunktion; typischerweise k-Punkt-Crossover, fitnessproportionale Selektion und binäre Mutation.</dd></div>
+        <div class="bestandteil"><dt>Evolutionsstrategien</dt><dd>Reellwertiger Genotyp; Gauß-Mutation gesteuert über σ; μ/ρ,λ-Notation für Eltern-/Nachkommenzahl; 1/5-Erfolgsregel zur automatischen Schrittweitenanpassung.</dd></div>
+        <div class="bestandteil"><dt>Genetische Programmierung</dt><dd>Syntaxbaum-Genotyp aus Terminal- und Nichtterminalsymbolen; Mutation durch neuen Teilbaum, Rekombination durch Teilbaumtausch; Begrenzung der maximalen Baumtiefe.</dd></div>
+        <div class="bestandteil"><dt>Lokale Suche</dt><dd>Ein Eltern- und ein Kindindividuum; Nachbarschaftsveränderung; Akzeptanzbedingung statt vollständiger Selektion – konkret z. B. Hill Climbing, Simulated Annealing, Schwellwertakzeptanz, Record-to-Record Travel, Great Deluge oder Tabu-Suche.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+      <ol class="ablauf-liste">
+        <li>Genetische Algorithmen, Evolutionsstrategien und genetische Programmierung durchlaufen alle denselben Grundzyklus aus VL 03 – sie unterscheiden sich nur in der Darstellung der Individuen und den dazu passenden Operatoren.</li>
+        <li>Die lokale Suche vereinfacht diesen Zyklus: Es gibt zu jedem Zeitpunkt nur ein einziges aktuelles Individuum statt einer ganzen Population.</li>
+        <li>Ausgehend vom aktuellen Individuum wird ein einzelner neuer Kandidat in dessen Nachbarschaft erzeugt, etwa durch eine kleine zufällige Veränderung.</li>
+        <li>Eine Akzeptanzbedingung entscheidet, ob der neue Kandidat das aktuelle Individuum ersetzt – anders als bei reinem Hill Climbing wird dabei nicht nur eine Verbesserung akzeptiert, sondern unter bestimmten Bedingungen auch eine Verschlechterung.</li>
+        <li>Wie eine Verschlechterung bewertet wird, hängt vom gewählten Verfahren ab: Simulated Annealing nutzt eine mit der Zeit sinkende Wahrscheinlichkeit, Schwellwertakzeptanz einen sinkenden Schwellwert, Record-to-Record Travel denselben Schwellwert bezogen auf das bisher beste Individuum, Great Deluge einen steigenden Gütepegel und die Tabu-Suche eine Liste kürzlich besuchter Kandidaten.</li>
+        <li>Dieser Schritt wird wiederholt, bis ein Abbruchkriterium erreicht ist; am Ende wird das beste je gefundene Individuum zurückgegeben.</li>
+        <li>Da Verschlechterungen zeitweise erlaubt sind, kann die lokale Suche – anders als reines Hill Climbing – ein lokales Optimum wieder verlassen und ein besseres, weiter entferntes Optimum erreichen.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Vier Verfahren im Überblick</h2>
+      <p>
+        Teil A vergleicht Hill Climbing mit einer Akzeptanzbedingung, die zeitweise
+        Verschlechterungen erlaubt – dasselbe Prinzip, das Übung 5 am TSP untersucht.
+        Die Teile B–D zeigen je ein charakteristisches Detail von genetischen
+        Algorithmen, Evolutionsstrategien und genetischer Programmierung.
+      </p>
+
+      <div class="ea-teil" id="teil-lokale-suche">
+        <div class="ea-teil__titel">Teil A – Lokale Suche: Hill Climbing vs. Akzeptanzbedingung</div>
+        <div class="ls-charts">
+          <div class="ls-chart"><svg id="ls-svg-hc" viewBox="0 0 200 110"></svg><div class="ls-chart__label">Hill Climbing</div></div>
+          <div class="ls-chart"><svg id="ls-svg-ta" viewBox="0 0 200 110"></svg><div class="ls-chart__label">Schwellwertakzeptanz (Beispiel)</div></div>
+        </div>
+      </div>
+
+      <div class="ea-teil" id="teil-ga">
+        <div class="ea-teil__titel">Teil B – Genetische Algorithmen: Hamming-Klippe</div>
+        <div id="hk-container"></div>
+        <p class="hk-hinweis" id="hk-hinweis"></p>
+      </div>
+
+      <div class="ea-teil" id="teil-es">
+        <div class="ea-teil__titel">Teil C – Evolutionsstrategien: 1/5-Erfolgsregel</div>
+        <div class="es-row" id="es-row"></div>
+        <p class="hk-hinweis" id="es-hinweis"></p>
+      </div>
+
+      <div class="ea-teil" id="teil-gp">
+        <div class="ea-teil__titel">Teil D – Genetische Programmierung: Mutation eines Syntaxbaums</div>
+        <svg class="gp-baum" id="gp-svg" viewBox="0 0 220 170"></svg>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Die Hill-Climbing-Implementierung aus Übung 3
+        sollte so erweitert werden, dass sie mit einer beliebigen Akzeptanzfunktion
+        arbeiten kann. Darauf aufbauend waren mehrere Versionen der lokalen Suche aus der
+        Vorlesung zu implementieren und zu vergleichen, wie sie sich bei der Suche nach
+        einer guten TSP-Lösung schlagen.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Den direkten Vergleich, wie
+        unterschiedlich tolerant die Verfahren gegenüber Verschlechterungen sind, und wie
+        sich das auf die gefundene Lösungsqualität auswirkt – genau das Prinzip, das
+        Animation Teil A an einer vereinfachten Landschaft zeigt, hier am tatsächlichen
+        TSP.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Alle verglichenen Verfahren sind
+        letztlich Varianten derselben Idee – eine Akzeptanzbedingung, die Verbesserungen
+        immer und Verschlechterungen nur unter bestimmten, mit der Zeit strenger
+        werdenden Bedingungen zulässt. Reines Hill Climbing ist der Spezialfall, der
+        Verschlechterungen nie zulässt und deshalb am ehesten in einem lokalen Optimum
+        steckenbleibt.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>TSP-Strang:</strong> Übung 1 → Übung 3 (VL 03) → Übung 4 (VL 04) →
+        Übung 5 (dieses Modul) → Übung 6 (Ameisenkolonie-Optimierung, VL 06).
+        Vergleichskriterium bleibt: Wie systematisch durchsucht das Verfahren den
+        Lösungsraum, und wie gut entkommt es lokalen Optima?
+      </p>
+      <p>
+        <strong>VL 03 – Evolutionäre Algorithmen I:</strong> Hill Climbing wurde dort
+        bereits als einfachster evolutionärer Algorithmus eingeführt. Diese Vorlesung
+        ordnet es zusätzlich formal ein – als (1/1+1)-ES, also als Spezialfall einer
+        Evolutionsstrategie mit einem Eltern- und einem Kindindividuum.
+      </p>
+      <p>
+        <strong>VL 06 – Schwarmintelligenz</strong> löst dasselbe TSP mit einem
+        gänzlich anderen, nicht auf dem EA-Grundzyklus basierenden Prinzip – eine gute
+        Vergleichsfolie zur Frage, wo die Grenzen des in VL 03–05 vorgestellten Ansatzes
+        liegen.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einer Hamming-Klippe?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Hamming-Klippe ist eine Unstetigkeit in einer Kodierung: Zwei
+            Lösungen, die inhaltlich nah beieinanderliegen, können in der gewählten
+            Darstellung – meist einer Standard-Bitstring-Kodierung – weit auseinander
+            liegen. Das Standardbeispiel aus der Vorlesung sind die Zahlen 15 und 16: Als
+            Lösungen liegen sie unmittelbar nebeneinander, doch ihre Binärdarstellungen
+            01111 und 10000 unterscheiden sich in allen fünf Bits. Für einen
+            evolutionären Algorithmus bedeutet das eine schwache Kausalität, weil eine
+            kleine Mutation auf dem Genotyp eine unverhältnismäßig große Änderung im
+            Phänotyp bewirken kann.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der lokalen Suche, und wodurch unterscheidet sie sich vom allgemeinen EA-Grundzyklus?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die lokale Suche ist eine vereinfachte Variante eines evolutionären
+            Algorithmus, die statt einer ganzen Population nur mit einem einzigen
+            aktuellen Individuum arbeitet. In jedem Schritt wird ein neuer
+            Lösungskandidat in der Nachbarschaft des aktuellen Individuums erzeugt, und
+            eine Akzeptanzbedingung entscheidet, ob dieser Kandidat das aktuelle
+            Individuum ersetzt. Der Vorteil gegenüber populationsbasierten EAs ist ein
+            geringerer Rechenaufwand bei für viele Probleme bereits guter Leistung.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der 1/5-Erfolgsregel bei Evolutionsstrategien?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die 1/5-Erfolgsregel passt die Schrittweite σ einer Evolutionsstrategie
+            automatisch an den bisherigen Sucherfolg an. Waren mehr als ein Fünftel der
+            letzten Mutationen erfolgreich, wird angenommen, dass noch viel Raum für
+            Verbesserung besteht, und σ wird um einen Faktor vergrößert. Waren es weniger
+            als ein Fünftel, wird σ verkleinert, um in der Nähe eines vermuteten Optimums
+            feiner zu suchen. Die Vorlesung empfiehlt konkret die Faktoren 1,22 zum
+            Vergrößern und 0,82 zum Verkleinern.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich ein genetischer Algorithmus von einer Evolutionsstrategie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein genetischer Algorithmus stellt den Genotyp meist als Bitstring dar und
+            nutzt typischerweise k-Punkt-Crossover, fitnessproportionale Selektion und
+            binäre Mutation. Eine Evolutionsstrategie stellt den Genotyp dagegen als
+            reellwertigen Vektor dar und mutiert ihn durch Addition normalverteilter
+            Zufallszahlen, gesteuert über eine Schrittweite σ, die sich zum Beispiel über
+            die 1/5-Erfolgsregel automatisch anpassen kann. Genetische Algorithmen
+            eignen sich damit eher für diskrete, Evolutionsstrategien eher für
+            kontinuierliche Optimierungsprobleme.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Simulated Annealing von der Schwellwertakzeptanz?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Beide Verfahren akzeptieren Verbesserungen immer und Verschlechterungen
+            nur unter einer mit der Zeit strenger werdenden Bedingung. Simulated
+            Annealing akzeptiert eine Verschlechterung mit einer Wahrscheinlichkeit, die
+            von der Größe der Verschlechterung und einer sinkenden „Temperatur" abhängt –
+            die Entscheidung ist also zufällig. Die Schwellwertakzeptanz akzeptiert eine
+            Verschlechterung dagegen deterministisch, solange sie kleiner als ein fest
+            vorgegebener, mit der Zeit sinkender Schwellwert ist.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Record-to-Record Travel von der Schwellwertakzeptanz?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Beide Verfahren vergleichen die Verschlechterung mit einem mit der Zeit
+            sinkenden Schwellwert. Die Schwellwertakzeptanz bezieht diese Verschlechterung
+            auf das jeweils vorherige Individuum. Record-to-Record Travel bezieht sie
+            stattdessen auf das bisher beste gefundene Individuum, den „Rekord" – daher
+            der Name rekordorientiertes Wandern. Das bedeutet auch, dass bei diesem
+            Verfahren nach jedem Schritt geprüft werden muss, ob ein neuer Rekord
+            erreicht wurde.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihr Hill-Climbing-Verfahren bleibt zuverlässig in einem lokalen Optimum stecken – welche Änderung würden Sie vorschlagen, und warum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Hill Climbing akzeptiert ausschließlich Verbesserungen und kann ein
+            lokales Optimum deshalb per Konstruktion nie wieder verlassen. Ich würde die
+            strikte Akzeptanzbedingung durch eine ersetzen, die zeitweise auch
+            Verschlechterungen zulässt, etwa Simulated Annealing oder Schwellwertakzeptanz.
+            Zu Beginn der Suche wäre die Toleranz für Verschlechterungen groß, damit das
+            Verfahren aus dem Tal um ein lokales Optimum herausfinden kann, und sie würde
+            mit der Zeit sinken, damit sich das Verfahren am Ende auf die beste gefundene
+            Gegend konzentriert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten eine kontinuierliche, reellwertige Funktion optimieren, ohne sich um eine Bitstring-Kodierung kümmern zu müssen – welchen Verfahrenstyp wählen Sie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Dafür eignet sich eine Evolutionsstrategie besser als ein klassischer
+            genetischer Algorithmus, weil sie den Genotyp direkt als reellwertigen Vektor
+            darstellt. Eine Umwandlung in eine Bitstring-Kodierung entfällt damit
+            vollständig, und mit ihr auch das Risiko von Hamming-Klippen. Die Mutation
+            erfolgt durch Addition normalverteilter Zufallszahlen, deren Schrittweite σ
+            sich zum Beispiel über die 1/5-Erfolgsregel automatisch an den Suchfortschritt
+            anpassen lässt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten mit einem evolutionären Verfahren nicht nur Parameter, sondern eine ganze kleine Rechenvorschrift finden – welches Verfahren eignet sich, und wie sind die Individuen dargestellt?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Dafür eignet sich genetische Programmierung, da hier die Individuen selbst
+            Programme sind. Jedes Individuum wird als Syntaxbaum dargestellt, dessen
+            Blätter – die Terminalsymbole – Konstanten oder Variablen sind und dessen
+            innere Knoten – die Nichtterminalsymbole – Funktionen darstellen. Die Fitness
+            eines Individuums ergibt sich daraus, wie gut das dargestellte Programm eine
+            gegebene Eingabe auf die gewünschte Ausgabe abbildet. Mutation ersetzt dabei
+            einen zufälligen Teilbaum, Rekombination tauscht Teilbäume zwischen zwei
+            Individuen aus.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Hamming-Klippen als Problem jedes Bitstring-Genotyps
+        ansehen:</span> Sie tritt nur bei einer ungeeigneten Kodierung auf, nicht
+        zwangsläufig bei jeder Bitstring-Darstellung.</li>
+        <li><span class="as-achtung">Den Zusammenhang zwischen Hill Climbing und
+        (1/1+1)-ES übersehen:</span> Laut Vorlesung ist die (1/1+1)-ES im Kern Hill
+        Climbing – ein Beleg dafür, dass Hill Climbing ein Spezialfall einer
+        Evolutionsstrategie ist, kein eigenständiges, unabhängiges Verfahren.</li>
+        <li><span class="as-achtung">Lokale Suche für keinen evolutionären Algorithmus
+        halten, weil sie nur ein Individuum verwendet:</span> Sie ist ausdrücklich eine
+        vereinfachte EA-Variante.</li>
+        <li><span class="as-achtung">Akzeptanzbedingung mit Selektion
+        verwechseln:</span> Bei der lokalen Suche gibt es keine Population, aus der
+        selektiert wird – die Akzeptanzbedingung entscheidet nur, ob ein einzelner neuer
+        Kandidat das aktuelle Individuum ersetzt.</li>
+        <li><span class="as-achtung">Great Deluge und Schwellwertakzeptanz
+        gleichsetzen:</span> Beide nutzen eine zeitabhängige Grenze, doch
+        Schwellwertakzeptanz begrenzt die erlaubte Verschlechterung direkt, während
+        Great Deluge einen absoluten, mit der Zeit steigenden Gütepegel vorgibt.</li>
+        <li><span class="as-achtung">Bei genetischer Programmierung beliebige Mutationen
+        für unproblematisch halten:</span> Ohne Begrenzung der Baumtiefe können
+        Syntaxbäume unkontrolliert wachsen, und ohne Beachtung der Typkorrektheit können
+        ungültige Programme entstehen.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      // ---------- Teil A: Lokale Suche ----------
+
+      function f(x) {
+        return 0.6 * Math.exp(-Math.pow((x - 25) / 8, 2)) + 1.0 * Math.exp(-Math.pow((x - 70) / 12, 2));
+      }
+
+      var HC_PATH = [15, 18, 21, 23, 25, 25, 25, 25, 25];
+      var TA_PATH = [15, 18, 21, 23, 28, 38, 50, 60, 70];
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      function xToPx(x) { return x * 2; }
+      function yToPx(y) { return 95 - y * 85; }
+
+      function buildLandschaft(svgId) {
+        var svg = document.getElementById(svgId);
+        var pts = [];
+        for (var x = 0; x <= 100; x += 2) pts.push(xToPx(x) + "," + yToPx(f(x)));
+        svg.appendChild(svgEl("polyline", { points: pts.join(" "), class: "ls-kurve" }));
+        svg.appendChild(svgEl("circle", { cx: xToPx(25), cy: yToPx(f(25)), r: 2.2, class: "ls-punkt-lokal" }));
+        svg.appendChild(svgEl("circle", { cx: xToPx(70), cy: yToPx(f(70)), r: 2.2, class: "ls-punkt-global" }));
+        svg.appendChild(svgEl("text", { x: xToPx(25), y: yToPx(f(25)) - 6, class: "gp-text" })).textContent = "lokal";
+        svg.appendChild(svgEl("text", { x: xToPx(70), y: yToPx(f(70)) - 6, class: "gp-text" })).textContent = "global";
+      }
+
+      function renderLandschaftSchritt(svgId, pfad, step) {
+        var svg = document.getElementById(svgId);
+        Array.prototype.slice.call(svg.querySelectorAll(".ls-pfad, .ls-punkt-alt, .ls-punkt-aktuell")).forEach(function (n) { n.remove(); });
+        var besucht = pfad.slice(0, step + 1);
+        if (besucht.length > 1) {
+          var linie = besucht.map(function (x) { return xToPx(x) + "," + yToPx(f(x)); }).join(" ");
+          svg.appendChild(svgEl("polyline", { points: linie, class: "ls-pfad" }));
+        }
+        besucht.slice(0, -1).forEach(function (x) {
+          svg.appendChild(svgEl("circle", { cx: xToPx(x), cy: yToPx(f(x)), r: 2, class: "ls-punkt-alt" }));
+        });
+        var aktuell = besucht[besucht.length - 1];
+        svg.appendChild(svgEl("circle", { cx: xToPx(aktuell), cy: yToPx(f(aktuell)), r: 3.2, class: "ls-punkt-aktuell" }));
+      }
+
+      // ---------- Teil B: Hamming-Klippe ----------
+
+      function buildHammingklippe() {
+        var container = document.getElementById("hk-container");
+        [["15", "01111"], ["16", "10000"]].forEach(function (paar) {
+          var row = document.createElement("div");
+          row.className = "hk-row";
+          row.dataset.versteckt = "true";
+          var label = document.createElement("div");
+          label.className = "hk-label";
+          label.textContent = paar[0] + " =";
+          row.appendChild(label);
+          var bits = document.createElement("div");
+          bits.className = "hk-bits";
+          paar[1].split("").forEach(function (bit, i) {
+            var b = document.createElement("div");
+            b.className = "hk-bit";
+            b.textContent = bit;
+            b.dataset.pos = i;
+            bits.appendChild(b);
+          });
+          row.appendChild(bits);
+          container.appendChild(row);
+        });
+      }
+
+      function setHkSchritt(step) {
+        var rows = document.querySelectorAll("#hk-container .hk-row");
+        rows[0].dataset.versteckt = step >= 9 ? "false" : "true";
+        rows[1].dataset.versteckt = step >= 10 ? "false" : "true";
+        var bits15 = rows[0].querySelectorAll(".hk-bit");
+        var bits16 = rows[1].querySelectorAll(".hk-bit");
+        var zeigen = step >= 10;
+        var diffAnzahl = 0;
+        bits15.forEach(function (b, i) {
+          var unterschiedlich = zeigen && b.textContent !== bits16[i].textContent;
+          b.dataset.diff = unterschiedlich ? "true" : "false";
+          bits16[i].dataset.diff = unterschiedlich ? "true" : "false";
+          if (unterschiedlich) diffAnzahl++;
+        });
+        document.getElementById("hk-hinweis").textContent = zeigen
+          ? "Unterschiedliche Bits: " + diffAnzahl + " von 5 – trotz benachbarter Werte."
+          : "";
+      }
+
+      // ---------- Teil C: 1/5-Erfolgsregel ----------
+
+      function buildEsRow() {
+        var row = document.getElementById("es-row");
+        [
+          { id: "start", label: "σ = 1.00 (Start)", sigma: 1.0 },
+          { id: "gross", label: "σ = 1.22 (viele Erfolge)", sigma: 1.22 },
+          { id: "klein", label: "σ = 0.82 (wenige Erfolge)", sigma: 0.82 }
+        ].forEach(function (cfg) {
+          var item = document.createElement("div");
+          item.className = "es-item";
+          item.id = "es-" + cfg.id;
+          item.dataset.versteckt = cfg.id === "start" ? "false" : "true";
+          var kreis = document.createElement("div");
+          kreis.className = "es-kreis";
+          var px = Math.round(cfg.sigma * 60);
+          kreis.style.width = px + "px";
+          kreis.style.height = px + "px";
+          item.appendChild(kreis);
+          var label = document.createElement("div");
+          label.className = "es-label";
+          label.textContent = cfg.label;
+          item.appendChild(label);
+          row.appendChild(item);
+        });
+      }
+
+      function setEsSchritt(step) {
+        var hinweis = document.getElementById("es-hinweis");
+        document.getElementById("es-gross").dataset.versteckt = step >= 11 ? "false" : "true";
+        document.getElementById("es-klein").dataset.versteckt = step >= 12 ? "false" : "true";
+        if (step === 11) hinweis.textContent = "Mehr als 1/5 der letzten Mutationen waren erfolgreich → σ wächst um Faktor 1,22.";
+        else if (step >= 12) hinweis.textContent = "Weniger als 1/5 der letzten Mutationen waren erfolgreich → σ schrumpft um Faktor 0,82.";
+        else hinweis.textContent = "";
+      }
+
+      // ---------- Teil D: GP-Syntaxbaum ----------
+
+      var GP_VORHER = [
+        { id: "plus", x: 110, y: 15, label: "+" },
+        { id: "mal", x: 60, y: 55, label: "*", parent: "plus" },
+        { id: "div", x: 160, y: 55, label: "/", parent: "plus" },
+        { id: "minus", x: 35, y: 100, label: "−", parent: "mal" },
+        { id: "malx", x: 85, y: 100, label: "x", parent: "mal" },
+        { id: "divy", x: 140, y: 100, label: "y", parent: "div" },
+        { id: "divx", x: 185, y: 100, label: "x", parent: "div" },
+        { id: "minusx", x: 20, y: 145, label: "x", parent: "minus" },
+        { id: "minusy", x: 50, y: 145, label: "y", parent: "minus" }
+      ];
+
+      var GP_NACHHER_EXTRA = [
+        { id: "neuplus", x: 185, y: 100, label: "+", parent: "div", ersetzt: "divx", neu: true },
+        { id: "neuy", x: 170, y: 145, label: "y", parent: "neuplus", neu: true },
+        { id: "neux", x: 200, y: 145, label: "x", parent: "neuplus", neu: true }
+      ];
+
+      function drawGpTree(sichtbar, zeigeMutation) {
+        var svg = document.getElementById("gp-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        if (!sichtbar) return;
+        var knoten = GP_VORHER.filter(function (n) { return !(zeigeMutation && n.id === "divx"); });
+        if (zeigeMutation) knoten = knoten.concat(GP_NACHHER_EXTRA);
+        var byId = {};
+        knoten.forEach(function (n) { byId[n.id] = n; });
+        knoten.forEach(function (n) {
+          if (n.parent && byId[n.parent]) {
+            svg.appendChild(svgEl("line", { x1: byId[n.parent].x, y1: byId[n.parent].y, x2: n.x, y2: n.y, class: "gp-kante" }));
+          }
+        });
+        knoten.forEach(function (n) {
+          svg.appendChild(svgEl("circle", { cx: n.x, cy: n.y, r: 13, class: "gp-knoten" + (n.neu ? " gp-knoten--neu" : "") }));
+          svg.appendChild(svgEl("text", { x: n.x, y: n.y + 3, class: "gp-text" })).textContent = n.label;
+        });
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Ausgangspunkt für beide Verfahren ist dieselbe Position auf einer Beispiel-Gütelandschaft mit einem niedrigeren lokalen und einem höheren globalen Optimum.",
+        "Beide Verfahren bewegen sich zunächst gleich: Ein Nachbarschaftsschritt mit besserer Güte wird immer akzeptiert.",
+        "Beide klettern weiter den nächstgelegenen Hügel hinauf.",
+        "Kurz vor dem lokalen Optimum verhalten sich beide Verfahren noch identisch.",
+        "Ab hier trennen sich die Wege: Hill Climbing akzeptiert nur noch echte Verbesserungen und bleibt auf dem lokalen Optimum stehen. Die Schwellwertakzeptanz erlaubt dagegen eine Verschlechterung innerhalb ihres Schwellwerts und bewegt sich weiter.",
+        "Die Schwellwertakzeptanz steigt probeweise ins Tal ab – eine Verschlechterung, die Hill Climbing niemals akzeptieren würde.",
+        "Von dort aus findet die Schwellwertakzeptanz den Aufstieg zum deutlich höheren globalen Optimum.",
+        "Der Schwellwert sinkt mit der Zeit weiter, sodass sich das Verfahren zunehmend wie Hill Climbing verhält, sobald es sich einer guten Lösung nähert.",
+        "Ergebnis: Hill Climbing bleibt im lokalen Optimum stecken, die Schwellwertakzeptanz erreicht dank der erlaubten Zwischenverschlechterung das globale Optimum. Simulated Annealing, Record-to-Record Travel, Great Deluge und Tabu-Suche verfolgen alle dasselbe Grundprinzip mit jeweils eigener Regel für erlaubte Verschlechterungen.",
+        "Genetische Algorithmen codieren den Genotyp meist als Bitstring. Die Zahl 15 wird dabei als 01111 dargestellt.",
+        "Die benachbarte Zahl 16 sieht als Bitstring aber völlig anders aus: 10000 – alle fünf Bits ändern sich. Diese Unstetigkeit heißt Hamming-Klippe.",
+        "Evolutionsstrategien mutieren einen reellwertigen Vektor, indem sie eine normalverteilte Zufallszahl mit Schrittweite σ addieren. Sind mehr als ein Fünftel der letzten Mutationen erfolgreich, vergrößert die 1/5-Erfolgsregel σ, um schneller voranzukommen.",
+        "Sind es weniger als ein Fünftel, verkleinert die Regel σ wieder, um in der Nähe eines Optimums feiner zu suchen.",
+        "Genetische Programmierung stellt Individuen als Syntaxbäume dar – hier das Programm (x−y)·x + y/x.",
+        "Die Mutation ersetzt einen zufällig gewählten Teilbaum durch einen neu erzeugten – hier wird das Blatt x im rechten Zweig durch den neuen Teilbaum y+x ersetzt, das Programm wird zu (x−y)·x + y/(y+x)."
+      ];
+
+      function render(step) {
+        renderLandschaftSchritt("ls-svg-hc", HC_PATH, Math.min(step, HC_PATH.length - 1));
+        renderLandschaftSchritt("ls-svg-ta", TA_PATH, Math.min(step, TA_PATH.length - 1));
+
+        setHkSchritt(step);
+        setEsSchritt(step);
+        drawGpTree(step >= 13, step >= 14);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        buildLandschaft("ls-svg-hc");
+        buildLandschaft("ls-svg-ta");
+        buildHammingklippe();
+        buildEsRow();
+        drawGpTree(false, false);
+
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

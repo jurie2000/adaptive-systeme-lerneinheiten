@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 06 – Schwarmintelligenz · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+    .vergleich-wrapper { overflow-x: auto; }
+    table.vergleich { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    table.vergleich th, table.vergleich td { border: 1px solid var(--as-rahmen); padding: 0.5em 0.7em; text-align: left; vertical-align: top; }
+    table.vergleich th { background: var(--as-flaeche-erhoeht); color: var(--as-ablauf); }
+
+    /* ---------- Animation ---------- */
+    .ea-teil { margin-bottom: var(--as-abstand-l); }
+    .ea-teil__titel { font-weight: 600; color: var(--as-ablauf); margin-bottom: var(--as-abstand-s); }
+
+    .pso-svg { width: 100%; max-width: 480px; height: 90px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .pso-achse { stroke: var(--as-rahmen); stroke-width: 1.2; }
+    .pso-ziel { stroke: var(--as-ablauf); stroke-width: 1.2; stroke-dasharray: 3 2; }
+    .pso-partikel-1 { fill: var(--as-begriff); }
+    .pso-partikel-2 { fill: var(--as-akzent); }
+    .pso-spur { opacity: 0.35; }
+    .pso-text { font-size: 7px; fill: var(--as-text-gedaempft); text-anchor: middle; }
+
+    .aco-svg { width: 100%; max-width: 320px; height: 220px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .aco-stadt { fill: var(--as-text-gedaempft); }
+    .aco-stadt--start { fill: var(--as-begriff); }
+    .aco-kante { stroke: var(--as-rahmen); stroke-width: 1.2; }
+    .aco-kante--top { stroke: var(--as-akzent); stroke-width: 2.4; }
+    .aco-kante--gewaehlt { stroke: var(--as-ablauf); stroke-width: 2.4; }
+    .aco-text { font-size: 7px; fill: var(--as-text); text-anchor: middle; }
+
+    .aco-tabellenwrapper { overflow-x: auto; }
+    table.aco-tabelle { border-collapse: collapse; font-size: 0.8rem; margin-top: var(--as-abstand-s); }
+    table.aco-tabelle th, table.aco-tabelle td { border: 1px solid var(--as-rahmen); padding: 0.3em 0.6em; text-align: center; }
+    table.aco-tabelle th { background: var(--as-flaeche-erhoeht); }
+    table.aco-tabelle tr[data-top="true"] td { color: var(--as-akzent); font-weight: 600; }
+
+    .sds-row { display: flex; flex-wrap: wrap; gap: var(--as-abstand-m); }
+    .sds-agent { flex: 0 0 110px; text-align: center; padding: var(--as-abstand-s); border-radius: var(--as-radius-m); border: 2px solid var(--as-rahmen); }
+    .sds-agent[data-status="aktiv"] { border-color: var(--as-ablauf); }
+    .sds-agent[data-status="inaktiv"] { border-color: var(--as-achtung); }
+    .sds-agent__name { font-weight: 600; font-size: 0.8rem; }
+    .sds-agent__hypothese { font-size: 0.8rem; color: var(--as-text-gedaempft); margin-top: 0.3em; }
+    .sds-agent__status { font-size: 0.7rem; margin-top: 0.3em; text-transform: uppercase; letter-spacing: 0.02em; }
+    .sds-agent[data-status="aktiv"] .sds-agent__status { color: var(--as-ablauf); }
+    .sds-agent[data-status="inaktiv"] .sds-agent__status { color: var(--as-achtung); }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 06 – Schwarmintelligenz</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Schwarmintelligenz löst Optimierungsprobleme, ohne dass ein einzelnes Individuum
+        das Gesamtproblem überblickt oder eine zentrale Steuerung existiert – komplexes,
+        zielgerichtetes Verhalten entsteht erst durch das Zusammenspiel vieler einfacher
+        Einheiten (Emergenz). Anders als die evolutionären Algorithmen aus VL 03–05
+        arbeiten Partikelschwarmoptimierung (PSO) und Ameisenkolonie-Optimierung (ACO)
+        ohne Mutation und Rekombination: PSO nutzt direkte Kommunikation über die beste
+        gefundene Position, ACO nutzt indirekte Kommunikation über Pheromonspuren in der
+        Umwelt (Stigmergie). Welches Verfahren sich eignet, hängt vor allem vom Suchraum
+        ab – PSO für numerische Probleme, ACO für Probleme, die sich als Graph
+        formulieren lassen.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Schwarm</dt><dd>Große Anzahl meist einfacher Einheiten, die ohne Leittier oder Hierarchie kooperieren, um zielgerichtet zu handeln.</dd></div>
+        <div><dt>Stigmergie</dt><dd>Prinzip, dass Individuen eines Schwarms indirekt über ihre Umwelt miteinander kommunizieren.</dd></div>
+        <div><dt>Emergenz</dt><dd>Der Schwarm erbringt durch das Zusammenspiel der einzelnen Individuen ein intelligentes Verhalten, das die Fähigkeiten jedes Einzelnen übersteigt.</dd></div>
+        <div><dt>Partikelschwarmoptimierung (PSO)</dt><dd>Optimierungsverfahren für numerische Suchräume, bei dem Lösungskandidaten als Partikel mit Position und Geschwindigkeit dargestellt werden.</dd></div>
+        <div><dt>Trägheitsparameter w</dt><dd>Steuert, wie stark ein Partikel seiner bisherigen Bewegungsrichtung weiter folgt.</dd></div>
+        <div><dt>Lokal beste Position (x<sub>l</sub>)</dt><dd>Die beste Position, die ein einzelnes Partikel bisher selbst erreicht hat.</dd></div>
+        <div><dt>Global beste Position (x<sub>g</sub>)</dt><dd>Die beste Position, die der gesamte Schwarm bisher erreicht hat.</dd></div>
+        <div><dt>Ameisenkolonie-Optimierung (ACO)</dt><dd>Optimierungsverfahren für Graphen, bei dem virtuelle Ameisen Wege anhand von Pheromonspuren und heuristischer Information wählen.</dd></div>
+        <div><dt>Pheromon</dt><dd>Botenstoff, den Ameisen auf ihrem Weg hinterlassen und der mit der Zeit verdunstet.</dd></div>
+        <div><dt>Heuristische Information (ν)</dt><dd>Ein Maß für die Güte einer Kante unabhängig von der Pheromonspur – beim TSP z. B. der Kehrwert der Distanz.</dd></div>
+        <div><dt>Verdunstungsrate (ρ)</dt><dd>Bestimmt, wie schnell alte Pheromone bei der Aktualisierung an Gewicht verlieren.</dd></div>
+        <div><dt>Stochastic Diffusion Search (SDS)</dt><dd>Verfahren, bei dem Agenten Hypothesen anhand von Teilprüfungen bewerten und erfolglose Hypothesen durch die Hypothesen erfolgreicher Agenten ersetzen.</dd></div>
+        <div><dt>Agent (bei SDS)</dt><dd>Trägt eine Hypothese – einen Lösungskandidaten – und prüft sie anhand eines Teils der Gütefunktion.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>Partikelschwarmoptimierung</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Partikel p(x, v, x<sub>l</sub>, x<sub>g</sub>)</dt><dd>Position (Lösungskandidat), Geschwindigkeit, beste eigene Position, beste Schwarmposition.</dd></div>
+        <div class="bestandteil"><dt>Geschwindigkeitsaktualisierung</dt><dd>v<sup>t+1</sup> = w·v<sup>t</sup> + c<sub>l</sub>·r<sub>l</sub>·(x<sub>l</sub>−x<sup>t</sup>) + c<sub>g</sub>·r<sub>g</sub>·(x<sub>g</sub>−x<sup>t</sup>) – kombiniert Trägheit, Anziehung zur eigenen und zur Schwarm-besten Position.</dd></div>
+        <div class="bestandteil"><dt>Positionsaktualisierung</dt><dd>x<sup>t+1</sup> = x<sup>t</sup> + v<sup>t+1</sup>.</dd></div>
+      </dl>
+
+      <h3>Ameisenkolonie-Optimierung</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Pheromon τ<sub>ij</sub> und Heuristik ν<sub>ij</sub></dt><dd>Je Kante gepflegte Werte – Pheromon verändert sich über die Zeit, die heuristische Information ist meist fest (z. B. 1/Distanz).</dd></div>
+        <div class="bestandteil"><dt>Auswahlwahrscheinlichkeit p<sub>ij</sub></dt><dd>Kombiniert τ und ν gewichtet über die Parameter α und β zu einer Wahrscheinlichkeit je erreichbarer Kante.</dd></div>
+        <div class="bestandteil"><dt>Pheromon-Update</dt><dd>Verdunstung alter Pheromone (Faktor ρ) plus Verstärkung auf guten Wegen.</dd></div>
+      </dl>
+
+      <h3>Stochastic Diffusion Search</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Agenten mit Hypothesen</dt><dd>Jeder Agent vertritt einen Lösungskandidaten.</dd></div>
+        <div class="bestandteil"><dt>Testphase</dt><dd>Partielle Bewertung der Hypothese, Ergebnis aktiv oder inaktiv.</dd></div>
+        <div class="bestandteil"><dt>Streuphase (Diffusion)</dt><dd>Inaktive Agenten übernehmen die Hypothese eines zufällig gewählten aktiven Agenten oder stellen eine neue auf.</dd></div>
+      </dl>
+
+      <h3>Vergleich: EA, PSO und ACO</h3>
+      <div class="vergleich-wrapper">
+        <table class="vergleich">
+          <tr><th></th><th>EA</th><th>PSO</th><th>ACO</th></tr>
+          <tr><td>Population</td><td>Individuen können sterben</td><td>Konstant</td><td>Kein Populationskonzept, alle Generationen sind unabhängig</td></tr>
+          <tr><td>Kommunikation</td><td>Keine direkte Kommunikation vorgesehen</td><td>Individuen können über x<sub>g</sub> kommunizieren</td><td>Kommunikation über Pheromone</td></tr>
+          <tr><td>Suche nach Lösung</td><td>Durch Mutation und Rekombination</td><td>Durch Mutation (r<sub>l</sub>, r<sub>g</sub>) und Kommunikation</td><td>Durch Pheromone und Wahrscheinlichkeiten</td></tr>
+          <tr><td>Gedächtnis</td><td>In der Regel nicht vorgesehen, in einigen Varianten aber verfügbar</td><td>Lokales und globales Gedächtnis</td><td>Temporäres Gedächtnis über Pheromone</td></tr>
+          <tr><td>Optimierung durch</td><td>Überleben der Besten</td><td>Teamarbeit</td><td>Verstärkung guter (Teil-)Lösungen</td></tr>
+          <tr><td>Suchraum</td><td>Beliebig</td><td>Numerisch</td><td>Graphen</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+
+      <h3>Partikelschwarmoptimierung</h3>
+      <ol class="ablauf-liste">
+        <li>Alle Partikel werden mit zufälliger Position und Geschwindigkeit initialisiert; die beste bisher gefundene Position wird für jedes Partikel und für den gesamten Schwarm festgehalten.</li>
+        <li>In jedem Schritt aktualisiert jedes Partikel seine Geschwindigkeit – gezogen von seiner eigenen besten Position und der besten Position des Schwarms, gedämpft durch die Trägheit.</li>
+        <li>Mit der neuen Geschwindigkeit bewegt sich das Partikel zu einer neuen Position; die Fitness wird berechnet und die eigene sowie die Schwarm-beste Position bei Bedarf aktualisiert.</li>
+        <li>Dieser Schritt wiederholt sich, bis ein Abbruchkriterium erreicht ist; zurückgegeben wird die beste je gefundene Position.</li>
+      </ol>
+
+      <h3>Ameisenkolonie-Optimierung</h3>
+      <ol class="ablauf-liste">
+        <li>Jede Kante des Graphen erhält einen zufälligen Anfangs-Pheromonwert und eine heuristische Information, die ihre Güte unabhängig von Pheromonen beschreibt.</li>
+        <li>Jede Ameise berechnet schrittweise einen vollständigen Weg durch den Graphen und wählt an jedem Knoten die nächste Kante mit einer Wahrscheinlichkeit, die sowohl von der Pheromonspur als auch von der heuristischen Information abhängt.</li>
+        <li>Nachdem alle Ameisen ihren Weg berechnet und dessen Güte bestimmt haben, werden die Pheromonwerte aktualisiert: Alte Pheromone verdunsten anteilig, auf guten Wegen kommen neue hinzu.</li>
+        <li>Dieser Schritt wiederholt sich, bis ein Abbruchkriterium erreicht ist; zurückgegeben wird der beste je gefundene Weg.</li>
+      </ol>
+
+      <h3>Stochastic Diffusion Search</h3>
+      <ol class="ablauf-liste">
+        <li>Jedem Agenten wird zufällig eine Hypothese zugewiesen.</li>
+        <li>Jeder Agent prüft seine Hypothese anhand eines Teils der Gütefunktion und wird dadurch aktiv (Hypothese akzeptiert) oder inaktiv (Hypothese verworfen).</li>
+        <li>Jeder inaktive Agent wählt einen zufälligen anderen Agenten: Ist dieser aktiv, übernimmt der inaktive Agent dessen Hypothese; ist er ebenfalls inaktiv, stellt der Agent eine neue Hypothese auf.</li>
+        <li>Dieser Schritt wiederholt sich, bis ein Abbruchkriterium erreicht ist; als Lösung gilt die Hypothese, die von den meisten Agenten unterstützt wird.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: PSO, ACO und SDS</h2>
+      <p>
+        Teil A zeigt PSO am Vorlesungsbeispiel f(x) = |x−3|. Teil B nutzt für ACO
+        denselben Städtegraphen wie die vorigen Module – alle Zahlen werden live nach
+        den Formeln aus Abschnitt 3 berechnet. Teil C zeigt SDS am
+        Goldgräber-Beispiel der Vorlesung.
+      </p>
+
+      <div class="ea-teil" id="teil-pso">
+        <div class="ea-teil__titel">Teil A – Partikelschwarmoptimierung</div>
+        <svg class="pso-svg" id="pso-svg" viewBox="0 0 200 90"></svg>
+      </div>
+
+      <div class="ea-teil" id="teil-aco">
+        <div class="ea-teil__titel">Teil B – Ameisenkolonie-Optimierung</div>
+        <svg class="aco-svg" id="aco-svg" viewBox="0 0 100 100"></svg>
+        <div class="aco-tabellenwrapper">
+          <table class="aco-tabelle" id="aco-tabelle"></table>
+        </div>
+      </div>
+
+      <div class="ea-teil" id="teil-sds">
+        <div class="ea-teil__titel">Teil C – Stochastic Diffusion Search (Goldgräber-Beispiel)</div>
+        <div class="sds-row" id="sds-row"></div>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Aufgabe 6.1 verlangte eine einfache
+        Partikelschwarmoptimierung für n-dimensionale Funktionen mit variierbaren
+        Parametern, getestet an der zu minimierenden Rosenbrock-Funktion
+        f(x,y) = (1−x)² + 100·(y−x²)² mit bekanntem Minimum bei (1,1). Aufgabe 6.2
+        verlangte, den evolutionären Algorithmus aus den vorigen Übungen durch einen
+        Ameisenkolonie-Algorithmus für das TSP zu ersetzen – mit so vielen Ameisen wie
+        Knoten und Pheromon- sowie Gütewerten in einer symmetrischen Matrix.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Der Wechsel von einem evolutionären
+        zu einem schwarmbasierten Verfahren für dasselbe TSP macht den Unterschied in der
+        Funktionsweise konkret erfahrbar – statt Mutation und Rekombination bestimmen
+        jetzt Pheromonspuren und Wahrscheinlichkeiten den Weg zur Lösung. Die
+        Rosenbrock-Funktion zeigt zusätzlich, wie sich PSO auch auf ein kontinuierliches,
+        nicht graphenbasiertes Problem anwenden lässt.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Die Rosenbrock-Funktion hat ein
+        schmales, gekrümmtes Tal um ihr Minimum – ein klassisches Beispiel dafür, warum
+        die Wahl der PSO-Parameter, insbesondere w, über schnelle Konvergenz oder
+        Steckenbleiben entscheidet. Bei ACO ist die Speicherung von Pheromon- und
+        Gütewerten in einer symmetrischen Matrix eine direkte Folge davon, dass beim TSP
+        jede Kante von beiden Enden aus gleich behandelt wird.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>TSP-Strang:</strong> Übung 1 → Übung 3 (VL 03) → Übung 4 (VL 04) →
+        Übung 5 (VL 05) → Übung 6 (dieses Modul, ACO). Dasselbe Problem wird hier mit
+        einem gänzlich anderen, nicht evolutionären Prinzip gelöst – die beste
+        Vergleichsfolie zur Frage, wo die Grenzen des EA-Grundzyklus aus VL 03–05 liegen.
+      </p>
+      <p>
+        <strong>VL 03–05 – Evolutionäre Algorithmen:</strong> Die Vergleichstabelle in
+        Abschnitt 3 stellt EA, PSO und ACO entlang derselben Kriterien – Population,
+        Kommunikation, Gedächtnis, Suchraum – direkt gegenüber. Sie ist der schnellste
+        Weg, im Prüfungsgespräch den Unterschied zwischen den Verfahrensfamilien
+        präzise zu benennen.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Stigmergie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Stigmergie bezeichnet das Prinzip, dass Individuen eines Schwarms nicht
+            direkt, sondern indirekt über ihre Umwelt miteinander kommunizieren. Das
+            klassische Beispiel sind Ameisen, die Pheromone auf ihrem Weg hinterlassen:
+            Eine andere Ameise nimmt diese Spur in der Umwelt wahr und ändert ihr
+            Verhalten daraufhin, ohne dass ein direkter Austausch zwischen den beiden
+            Tieren stattgefunden hat. Die Umwelt selbst wird so zum Kommunikationsmedium
+            und zugleich zu einer Art Gedächtnis des Schwarms.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der lokal besten und der global besten Position bei der Partikelschwarmoptimierung?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die lokal beste Position x<sub>l</sub> ist die beste Position, die ein
+            einzelnes Partikel im Laufe der Suche selbst bereits erreicht hat – sie ist
+            also partikelspezifisch. Die global beste Position x<sub>g</sub> ist dagegen
+            die beste Position, die irgendein Partikel im gesamten Schwarm bisher
+            gefunden hat, und wird von allen Partikeln gemeinsam genutzt. Beide Werte
+            fließen in die Geschwindigkeitsaktualisierung ein und sorgen dafür, dass sich
+            jedes Partikel sowohl an seiner eigenen Erfahrung als auch am Wissen des
+            gesamten Schwarms orientiert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der Stochastic Diffusion Search?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Stochastic Diffusion Search ist ein agentenbasiertes
+            Optimierungsverfahren für Probleme, deren Gütefunktion sich in unabhängig
+            prüfbare Teile zerlegen lässt und deren vollständige Berechnung zu aufwendig
+            wäre. Jeder Agent trägt eine Hypothese – einen Lösungskandidaten – und prüft
+            sie anhand eines Teils der Gütefunktion. Agenten mit einer als unzureichend
+            erkannten Hypothese übernehmen die Hypothese eines zufällig gewählten,
+            erfolgreichen Agenten oder stellen eine neue auf, sodass sich gute Hypothesen
+            im Schwarm ausbreiten.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich die Kommunikation der Individuen bei PSO von der bei ACO?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei PSO kommunizieren die Partikel direkt über die global beste Position
+            x<sub>g</sub>, die für den gesamten Schwarm sichtbar ist und aktiv in die
+            Geschwindigkeitsberechnung jedes Partikels einfließt. Bei ACO findet dagegen
+            keine direkte Kommunikation zwischen den Ameisen statt – sie kommunizieren
+            ausschließlich indirekt über die Pheromonspuren, die sie in der Umwelt
+            hinterlassen und die andere Ameisen später wahrnehmen. PSO nutzt damit ein
+            explizites, ACO ein stigmergisches Kommunikationsprinzip.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich ACO von den evolutionären Algorithmen aus VL 03–05 hinsichtlich des Populationskonzepts?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Evolutionäre Algorithmen haben ein echtes Populationskonzept: Individuen
+            können über die Umweltselektion aus der Population ausscheiden, und die
+            nächste Generation baut auf der vorherigen auf. Bei ACO gibt es dagegen kein
+            Populationskonzept in diesem Sinn – alle Ameisenläufe einer Iteration sind
+            voneinander unabhängig, und was zwischen den Iterationen erhalten bleibt, ist
+            nicht eine Population von Individuen, sondern ausschließlich die
+            Pheromonwerte auf den Kanten des Graphen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich Pheromonwert und heuristische Information bei der Ameisenkolonie-Optimierung?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Der Pheromonwert τ einer Kante verändert sich über die Zeit durch das
+            Verhalten der Ameisen selbst – er verdunstet und wird auf guten Wegen
+            verstärkt, spiegelt also die bisherige Sucherfahrung der Kolonie wider. Die
+            heuristische Information ν ist dagegen meist eine feste, von den Ameisen
+            unabhängige Eigenschaft der Kante, beim TSP zum Beispiel der Kehrwert ihrer
+            Distanz. Die Auswahlwahrscheinlichkeit einer Kante ergibt sich erst aus der
+            gewichteten Kombination beider Werte.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten eine kontinuierliche, numerische Funktion mit mehreren Variablen optimieren – würden Sie PSO oder ACO wählen, und warum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Für dieses Problem würde ich PSO wählen, da der Suchraum dort direkt
+            numerisch ist – jedes Partikel stellt eine Position im kontinuierlichen Raum
+            dar, und die Geschwindigkeitsaktualisierung arbeitet unmittelbar mit den
+            reellen Koordinaten. ACO ist dagegen für Probleme konzipiert, die sich als
+            Graph mit diskreten Kanten formulieren lassen, etwa das TSP. Eine
+            kontinuierliche Funktion müsste für ACO erst künstlich in einen Graphen
+            überführt werden, was unnötigen Aufwand bedeutet.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihre Gütefunktion ist sehr aufwendig zu berechnen, lässt sich aber in unabhängig prüfbare Teile zerlegen – welches Verfahren eignet sich, und warum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Dafür eignet sich die Stochastic Diffusion Search, weil sie genau für
+            diesen Fall entwickelt wurde: Statt in jedem Schritt die vollständige
+            Gütefunktion für jeden Kandidaten zu berechnen, testet jeder Agent seine
+            Hypothese nur anhand eines Teils der Gütefunktion. EA, PSO und ACO benötigen
+            dagegen in der Regel viele vollständige Auswertungen der Gütefunktion, was
+            bei hohem Berechnungsaufwand pro Auswertung schnell unpraktikabel wird.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Bei Ihrer PSO-Implementierung durchmustert der Schwarm den Suchraum, findet aber nie zu einem Optimum zurück – welchen Parameter würden Sie zuerst anpassen, und warum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein Schwarm, der den Suchraum nur durchmustert statt zu konvergieren,
+            deutet auf einen zu hohen Trägheitsparameter w hin – laut Vorlesung führt
+            w > 1 zu Divergenz, während w < 1 zu Konvergenz auf ein Optimum führt. Ich
+            würde deshalb zuerst w verkleinern, sodass die Partikel ihrer bisherigen
+            Bewegungsrichtung weniger stark folgen und sich stärker an der lokal und
+            global besten Position orientieren können.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Schwarmintelligenz mit evolutionären Algorithmen
+        gleichsetzen:</span> PSO und ACO nutzen weder Mutation noch Rekombination im
+        klassischen Sinn – die Vergleichstabelle in Abschnitt 3 macht die Unterschiede
+        explizit.</li>
+        <li><span class="as-achtung">x<sub>l</sub> und x<sub>g</sub> bei PSO
+        verwechseln:</span> x<sub>l</sub> ist die beste vom einzelnen Partikel erreichte
+        Position, x<sub>g</sub> die beste vom gesamten Schwarm erreichte Position.</li>
+        <li><span class="as-achtung">Pheromonwert und heuristische Information bei ACO
+        gleichsetzen:</span> τ verändert sich über die Zeit durch die Ameisen selbst, ν
+        beschreibt eine von den Ameisen unabhängige, meist feste Eigenschaft der Kante.</li>
+        <li><span class="as-achtung">Annehmen, ACO habe ein Populationskonzept wie ein
+        EA:</span> Laut Vergleichstabelle gibt es bei ACO kein Populationskonzept – alle
+        Ameisenläufe einer Iteration sind unabhängig voneinander.</li>
+        <li><span class="as-achtung">SDS für ein Verfahren mit vollständiger
+        Gütebewertung halten:</span> Der ganze Sinn von SDS ist, dass pro Testschritt nur
+        ein Teil der Lösung bewertet wird.</li>
+        <li><span class="as-achtung">Trägheitsparameter w mit einer der
+        Beschleunigungskonstanten c<sub>l</sub>/c<sub>g</sub> verwechseln:</span> w
+        steuert die Fortsetzung der bisherigen Bewegung, c<sub>l</sub>/c<sub>g</sub>
+        steuern die Anziehung zur lokal bzw. global besten Position.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      // ---------- Teil A: PSO ----------
+
+      function fPso(x) { return Math.abs(x - 3); }
+
+      function simuliereFolge() {
+        var w = 0.4, cl = 0.5, cg = 0.5, rl = 0.5, rg = 0.5;
+        var particles = [{ x: 0, v: 0, xl: 0 }, { x: 9, v: 0, xl: 9 }];
+        var xg = particles.reduce(function (best, p) { return fPso(p.x) < fPso(best) ? p.x : best; }, particles[0].x);
+        var folge = [[particles[0].x, particles[1].x]];
+        for (var t = 0; t < 5; t++) {
+          particles.forEach(function (p) {
+            p.v = w * p.v + cl * rl * (p.xl - p.x) + cg * rg * (xg - p.x);
+            p.x = p.x + p.v;
+            if (fPso(p.x) < fPso(p.xl)) p.xl = p.x;
+          });
+          xg = particles.reduce(function (best, p) { return fPso(p.xl) < fPso(best) ? p.xl : best; }, xg);
+          folge.push([particles[0].x, particles[1].x]);
+        }
+        return folge;
+      }
+
+      var PSO_FOLGE = simuliereFolge();
+
+      function xToPx(x) { return 5 + x * 19; }
+
+      function renderPso(step) {
+        var svg = document.getElementById("pso-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        svg.appendChild(svgEl("line", { x1: xToPx(0), y1: 60, x2: xToPx(10), y2: 60, class: "pso-achse" }));
+        svg.appendChild(svgEl("line", { x1: xToPx(3), y1: 20, x2: xToPx(3), y2: 80, class: "pso-ziel" }));
+        svg.appendChild(svgEl("text", { x: xToPx(3), y: 15, class: "pso-text" })).textContent = "Optimum x=3";
+
+        var idx = Math.min(step, PSO_FOLGE.length - 1);
+        for (var t = 0; t <= idx; t++) {
+          var opac = t === idx ? 1 : 0.25 + 0.5 * (t / idx || 0);
+          [0, 1].forEach(function (p) {
+            svg.appendChild(svgEl("circle", {
+              cx: xToPx(PSO_FOLGE[t][p]), cy: 60, r: t === idx ? 5 : 2.5,
+              class: "pso-partikel-" + (p + 1) + (t === idx ? "" : " pso-spur"),
+              style: "opacity:" + opac
+            }));
+          });
+        }
+      }
+
+      // ---------- Teil B: ACO ----------
+
+      var CITY_POS = { A: [20, 20], B: [80, 15], C: [90, 60], D: [55, 90], E: [15, 70], F: [50, 45] };
+      var STARTSTADT = "A";
+      var ZIELSTAEDTE = ["B", "C", "D", "E", "F"];
+
+      function distanz(a, b) {
+        var pa = CITY_POS[a], pb = CITY_POS[b];
+        return Math.hypot(pa[0] - pb[0], pa[1] - pb[1]);
+      }
+
+      var RHO = 0.1, OMEGA = 5, ALPHA = 1, BETA = 1;
+
+      // ν hängt nur von den (festen) Stadtkoordinaten ab, deshalb ist auch die Kante
+      // mit dem höchsten Wert vorab eindeutig bestimmbar - keine Mutation nötig.
+      var NU = {};
+      ZIELSTAEDTE.forEach(function (z) { NU[z] = 1 / distanz(STARTSTADT, z); });
+      var TOP_ZIEL = ZIELSTAEDTE.reduce(function (best, z) { return NU[z] > NU[best] ? z : best; }, ZIELSTAEDTE[0]);
+
+      // Reiner Funktionswert: Pheromon bei achtStep < 3 überall 0.5, ab achtStep 3
+      // einmalig aktualisiert auf der Zielkante - unabhängig davon, wie oft/in
+      // welcher Reihenfolge gerendert wird (kein Aufsummieren über mehrere Aufrufe).
+      function pheromonFuerSchritt(achtStep) {
+        var p = {};
+        ZIELSTAEDTE.forEach(function (z) { p[z] = 0.5; });
+        if (achtStep >= 3) {
+          p[TOP_ZIEL] = (1 - RHO) * 0.5 + RHO * OMEGA * (1 / 9);
+        }
+        return p;
+      }
+
+      function berechneWerte(achtStep) {
+        var pheromon = pheromonFuerSchritt(achtStep);
+        var werte = {};
+        var summe = 0;
+        ZIELSTAEDTE.forEach(function (ziel) {
+          var beitrag = Math.pow(pheromon[ziel], ALPHA) * Math.pow(NU[ziel], BETA);
+          werte[ziel] = { tau: pheromon[ziel], nu: NU[ziel], beitrag: beitrag };
+          summe += beitrag;
+        });
+        ZIELSTAEDTE.forEach(function (ziel) { werte[ziel].p = werte[ziel].beitrag / summe; });
+        return werte;
+      }
+
+      function drawAco(achtStep) {
+        var svg = document.getElementById("aco-svg");
+        var tabelle = document.getElementById("aco-tabelle");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        tabelle.innerHTML = "";
+        if (achtStep < 0) return;
+
+        var werte = berechneWerte(achtStep);
+        var top = TOP_ZIEL;
+
+        Object.keys(CITY_POS).forEach(function (c) {
+          if (c === STARTSTADT) return;
+          var klasse = "aco-kante";
+          if (achtStep >= 1 && c === top) klasse = achtStep >= 2 ? "aco-kante--gewaehlt" : "aco-kante--top";
+          svg.appendChild(svgEl("line", { x1: CITY_POS[STARTSTADT][0], y1: CITY_POS[STARTSTADT][1], x2: CITY_POS[c][0], y2: CITY_POS[c][1], class: klasse }));
+        });
+        Object.keys(CITY_POS).forEach(function (c) {
+          svg.appendChild(svgEl("circle", { cx: CITY_POS[c][0], cy: CITY_POS[c][1], r: 4, class: c === STARTSTADT ? "aco-stadt--start" : "aco-stadt" }));
+          svg.appendChild(svgEl("text", { x: CITY_POS[c][0], y: CITY_POS[c][1] - 7, class: "aco-text" })).textContent = c;
+        });
+
+        var kopf = document.createElement("tr");
+        ["Kante ab A", "τ", "ν", "p"].forEach(function (h) {
+          var th = document.createElement("th"); th.textContent = h; kopf.appendChild(th);
+        });
+        tabelle.appendChild(kopf);
+        ZIELSTAEDTE.forEach(function (ziel) {
+          var row = document.createElement("tr");
+          if (achtStep >= 1 && ziel === top) row.dataset.top = "true";
+          [
+            "A–" + ziel,
+            werte[ziel].tau.toFixed(2),
+            werte[ziel].nu.toFixed(3),
+            achtStep >= 1 ? werte[ziel].p.toFixed(2) : "–"
+          ].forEach(function (val) {
+            var td = document.createElement("td"); td.textContent = val; row.appendChild(td);
+          });
+          tabelle.appendChild(row);
+        });
+      }
+
+      // ---------- Teil C: SDS ----------
+
+      var HUEGEL = { H1: 0.30, H2: 0.90, H3: 0.20, H4: 0.40 };
+      var SCHWELLE = 0.35;
+      var sdsAgentEls = {};
+
+      function buildSdsRow() {
+        var row = document.getElementById("sds-row");
+        ["a1", "a2", "a3", "a4"].forEach(function (id, i) {
+          var el = document.createElement("div");
+          el.className = "sds-agent";
+          el.innerHTML =
+            '<div class="sds-agent__name">Agent ' + (i + 1) + '</div>' +
+            '<div class="sds-agent__hypothese"></div>' +
+            '<div class="sds-agent__status"></div>';
+          row.appendChild(el);
+          sdsAgentEls[id] = el;
+        });
+      }
+
+      function setSds(step) {
+        var zuweisung = { a1: "H1", a2: "H2", a3: "H3", a4: "H4" };
+        var status = { a1: "", a2: "", a3: "", a4: "" };
+
+        if (step >= 1) {
+          Object.keys(zuweisung).forEach(function (id) {
+            status[id] = HUEGEL[zuweisung[id]] >= SCHWELLE ? "aktiv" : "inaktiv";
+          });
+        }
+        if (step >= 2) {
+          zuweisung.a1 = "H2"; status.a1 = "aktiv";
+          zuweisung.a3 = "H4"; status.a3 = "aktiv";
+        }
+        if (step >= 3) {
+          // Ergebnis mehrerer weiterer Streuphasen (hier zusammengefasst): die Hypothese
+          // mit dem höchsten Gütewert setzt sich bei allen vier Agenten durch.
+          zuweisung.a3 = "H2"; zuweisung.a4 = "H2";
+          status.a1 = "aktiv"; status.a2 = "aktiv"; status.a3 = "aktiv"; status.a4 = "aktiv";
+        }
+
+        Object.keys(sdsAgentEls).forEach(function (id) {
+          var el = sdsAgentEls[id];
+          el.dataset.status = status[id] || "";
+          el.querySelector(".sds-agent__hypothese").textContent =
+            step >= 0 ? "Hügel " + zuweisung[id].slice(1) + " (Goldgehalt " + HUEGEL[zuweisung[id]].toFixed(2) + ")" : "";
+          el.querySelector(".sds-agent__status").textContent =
+            status[id] === "aktiv" ? "aktiv" : status[id] === "inaktiv" ? "inaktiv" : "";
+        });
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Zwei Partikel starten weit auseinander auf der Zahlengeraden – Ziel ist das Minimum von f(x) = |x−3| bei x = 3.",
+        "Nach einem Aktualisierungsschritt bewegt sich das rechte Partikel bereits deutlich in Richtung des bisher besten gefundenen Werts.",
+        "Nach einem weiteren Schritt nähert sich das rechte Partikel dem Optimum weiter an, während das linke Partikel noch an seinem bisherigen besten Wert festhält.",
+        "Jetzt beginnt sich auch das linke Partikel zu bewegen – gezogen vom besten Wert des gesamten Schwarms.",
+        "Beide Partikel kreisen das Optimum bei x = 3 zunehmend ein.",
+        "Nach wenigen weiteren Schritten pendeln sich beide Partikel nahe dem Optimum ein. Der Trägheitsparameter w steuert dabei die Balance: w > 1 lässt die Partikel eher divergieren, w < 1 – wie hier verwendet – führt zu dieser Konvergenz.",
+        "Für die Ameisenkolonie-Optimierung dient derselbe Städtegraph wie in den vorigen Modulen. Jede Kante von Stadt A aus hat einen Anfangs-Pheromonwert τ und eine aus dem Abstand berechnete heuristische Information ν = 1/d.",
+        "Aus Pheromon- und heuristischem Wert berechnet sich für jede Kante von A aus eine Auswahlwahrscheinlichkeit p – hervorgehoben ist die Kante mit der höchsten Wahrscheinlichkeit.",
+        "Eine Ameise wählt ihren nächsten Schritt mit genau dieser Wahrscheinlichkeit – hier fällt die Wahl mit hoher Wahrscheinlichkeit auf die hervorgehobene Kante.",
+        "Nachdem alle Ameisen ihre Wege berechnet haben, werden die Pheromonwerte aktualisiert: Alte Pheromone verdunsten anteilig, auf dem bisher besten gefundenen Weg kommen neue hinzu – der Tabellenwert für τ steigt entsprechend.",
+        "Die Stochastic Diffusion Search verteilt vier Agenten auf vier Hypothesen – hier vier Hügel mit unterschiedlichem, noch unbekanntem Goldgehalt.",
+        "In der Testphase prüft jeder Agent seine Hypothese anhand einer Stichprobe. Agent 2 und Agent 4 akzeptieren ihre Hypothese, Agent 1 und Agent 3 verwerfen ihre als unzureichend.",
+        "In der Streuphase übernehmen die verwerfenden Agenten die Hypothese eines zufällig gewählten, aktiven Agenten – Agent 1 übernimmt Hügel 2, Agent 3 übernimmt Hügel 4.",
+        "Nach mehreren weiteren Wiederholungen dieses Zyklus setzt sich die Hypothese mit dem tatsächlich höchsten Gütewert zunehmend durch, da sie in der Testphase am zuverlässigsten akzeptiert wird – am Ende gilt die von den meisten Agenten unterstützte Hypothese als Lösung."
+      ];
+
+      function render(step) {
+        renderPso(Math.min(step, 5));
+        drawAco(step >= 6 ? Math.min(step - 6, 3) : -1);
+        setSds(step >= 10 ? step - 10 : -1);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        buildSdsRow();
+
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

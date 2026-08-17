@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 07 – Neuronale Netze I · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .ea-teil { margin-bottom: var(--as-abstand-l); }
+    .ea-teil__titel { font-weight: 600; color: var(--as-ablauf); margin-bottom: var(--as-abstand-s); }
+
+    .gatter-row { display: flex; flex-wrap: wrap; gap: var(--as-abstand-m); }
+    .gatter-karte { flex: 0 0 190px; }
+    .gatter-karte[data-versteckt="true"] { display: none; }
+    .gatter-karte__titel { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.2em; }
+    table.gatter-tabelle { border-collapse: collapse; font-size: 0.78rem; width: 100%; }
+    table.gatter-tabelle th, table.gatter-tabelle td { border: 1px solid var(--as-rahmen); padding: 0.25em 0.45em; text-align: center; }
+    table.gatter-tabelle th { background: var(--as-flaeche-erhoeht); }
+
+    .hebb-svg { width: 100%; max-width: 320px; height: 130px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .hebb-knoten { fill: var(--as-flaeche); stroke: var(--as-begriff); stroke-width: 1.4; }
+    .hebb-text { font-size: 8px; text-anchor: middle; fill: var(--as-text); }
+
+    .prz-svg { width: 100%; max-width: 360px; height: 220px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .prz-achse { stroke: var(--as-rahmen); stroke-width: 1; }
+    .prz-punkt-0 { fill: var(--as-achtung); }
+    .prz-punkt-1 { fill: var(--as-begriff); }
+    .prz-linie { stroke: var(--as-akzent); stroke-width: 1.8; }
+    .prz-text { font-size: 7px; fill: var(--as-text-gedaempft); }
+    .prz-legende { font-size: 0.8rem; color: var(--as-text-gedaempft); margin: 0.4em 0 0; }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 07 – Neuronale Netze I</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Neuronale Netze bilden nach, wie einzelne Nervenzellen Signale verarbeiten: Ein
+        Neuron sammelt gewichtete Eingaben und feuert, sobald eine Summe einen
+        Schwellwert überschreitet. Das MCP-Neuron zeigt, dass sich damit bereits
+        logische Gatter und beliebige boolesche Funktionen bauen lassen – kann dabei
+        aber selbst nicht lernen. Das Perzeptron ergänzt genau das: Es passt seine
+        Gewichte anhand von Trainingsbeispielen automatisch an und trennt damit zwei
+        Klassen durch eine lernfähige Gerade beziehungsweise Hyperebene.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>MCP-Neuron</dt><dd>Erstes und einfachstes Modell eines künstlichen Neurons (McCulloch/Pitts, 1943) mit binären Ein- und Ausgabesignalen und festem Schwellwert.</dd></div>
+        <div><dt>Exzitatorisch / inhibitorisch</dt><dd>Ein Eingang wirkt erregend (zählt auf die Summe ein) bzw. hemmend (verhindert das Feuern, sobald aktiv).</dd></div>
+        <div><dt>Aktionspotential</dt><dd>Das elektrische Signal, das ein biologisches Neuron aussendet, sobald die Reizsumme am Axonhügel eine Schwellenspannung überschreitet.</dd></div>
+        <div><dt>Hebbsche Lernregel</dt><dd>„What fires together, wires together" – die Verbindung zwischen zwei gleichzeitig aktiven Neuronen wird verstärkt.</dd></div>
+        <div><dt>Perzeptron</dt><dd>1958 von Rosenblatt vorgestelltes, lernfähiges künstliches Neuron, das auf dem MCP-Neuron aufbaut.</dd></div>
+        <div><dt>Hyperebene</dt><dd>Eine (n−1)-dimensionale Fläche im n-dimensionalen Raum – bei zwei Eingaben eine Gerade.</dd></div>
+        <div><dt>Linear separierbar</dt><dd>Zwei Mengen sind linear separierbar, wenn eine Hyperebene existiert, die sie vollständig voneinander trennt.</dd></div>
+        <div><dt>Trainingsmuster</dt><dd>Ein Paar aus Eingabevektor und erwarteter Ausgabe (Ziel), aus dem das Perzeptron lernt.</dd></div>
+        <div><dt>Perzeptron-Lernregel</dt><dd>w ← w + η·(Ziel − Ausgabe)·Eingabe – passt die Gewichte nur bei falscher Ausgabe an.</dd></div>
+        <div><dt>Online-Lernen</dt><dd>Die Gewichte werden nach jedem einzelnen Trainingsmuster sofort angepasst.</dd></div>
+        <div><dt>Batch-Lernen</dt><dd>Alle Trainingsmuster werden zuerst durchlaufen, die Anpassung erfolgt gemittelt über alle Muster.</dd></div>
+        <div><dt>Lernrate η</dt><dd>Bestimmt, wie stark eine einzelne Gewichtsanpassung ausfällt.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>MCP-Neuron</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Eingänge</dt><dd>Exzitatorisch (erregend) oder inhibitorisch (hemmend) – liefern die binären Eingabesignale.</dd></div>
+        <div class="bestandteil"><dt>Schwellwert S</dt><dd>Grenze, ab der die Summe der erregenden Eingänge das Neuron feuern lässt.</dd></div>
+        <div class="bestandteil"><dt>Aktivierungsfunktion O</dt><dd>Berechnet aus Eingängen und Schwellwert die binäre Ausgabe.</dd></div>
+      </dl>
+
+      <h3>Perzeptron</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Gewichtete Eingänge x₀..xₙ</dt><dd>Reellwertige Eingaben inklusive fest codiertem Schwellwert (x₀=1, w₀=−S).</dd></div>
+        <div class="bestandteil"><dt>Aktivierungsfunktion O(x,w) = x·w ≥ 0</dt><dd>Bildet die gewichtete Summe auf eine binäre Ausgabe ab.</dd></div>
+        <div class="bestandteil"><dt>Perzeptron-Lernregel</dt><dd>Passt die Gewichte anhand der Trainingsmuster an, bis alle korrekt klassifiziert werden – sofern die Muster linear separierbar sind.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+
+      <h3>MCP-Neuron als Logikgatter</h3>
+      <ol class="ablauf-liste">
+        <li>Für jeden Eingang wird festgelegt, ob er exzitatorisch (erregend) oder inhibitorisch (hemmend) wirkt.</li>
+        <li>Die Summe der aktiven erregenden Eingänge wird gebildet.</li>
+        <li>Ist mindestens ein hemmender Eingang aktiv, feuert das Neuron nicht – unabhängig von der Summe.</li>
+        <li>Andernfalls feuert das Neuron genau dann, wenn die Summe den Schwellwert S erreicht oder überschreitet.</li>
+      </ol>
+
+      <h3>Perzeptron-Lernalgorithmus</h3>
+      <ol class="ablauf-liste">
+        <li>Die Gewichte werden mit Startwerten initialisiert; der Schwellwert wird als zusätzlicher Eingang x₀=1 mit Gewicht w₀=−S codiert.</li>
+        <li>Für ein Trainingsmuster wird die tatsächliche Ausgabe des Perzeptrons berechnet.</li>
+        <li>Stimmt sie mit der erwarteten Ausgabe überein, bleiben die Gewichte unverändert.</li>
+        <li>Stimmt sie nicht überein, werden die Gewichte nach der Regel w ← w + η·(Ziel−Ausgabe)·Eingabe angepasst – die Trenngerade verschiebt sich dadurch im Raum.</li>
+        <li>Dieser Schritt wird für alle Trainingsmuster wiederholt (online: sofort nach jedem Muster; batch: gemittelt nach allen Mustern), bis alle Muster korrekt klassifiziert werden oder ein Abbruchkriterium erreicht ist.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Vom MCP-Neuron zur wandernden Trenngerade</h2>
+      <p>
+        Teil C nutzt ein kleines Übungsbeispiel aus der Vorlesung (drei Punkte, zwei
+        Eingaben) – nicht den SONAR-Datensatz aus Übung 7, damit Sie die eigentliche
+        Übungsaufgabe weiterhin selbst lösen.
+      </p>
+
+      <div class="ea-teil" id="teil-mcp">
+        <div class="ea-teil__titel">Teil A – MCP-Neuron als Logikgatter</div>
+        <div class="gatter-row" id="gatter-row"></div>
+      </div>
+
+      <div class="ea-teil" id="teil-hebb">
+        <div class="ea-teil__titel">Teil B – Hebbsches Lernen (Pawlowscher Hund)</div>
+        <svg class="hebb-svg" id="hebb-svg" viewBox="0 0 200 100"></svg>
+      </div>
+
+      <div class="ea-teil" id="teil-perzeptron">
+        <div class="ea-teil__titel">Teil C – Perzeptron: die wandernde Trenngerade</div>
+        <svg class="prz-svg" id="prz-svg" viewBox="0 0 200 130"></svg>
+        <p class="prz-legende" id="prz-gewichte"></p>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Ein Perzeptron mit Perzeptron-Lernalgorithmus
+        implementieren, sowohl im Online- als auch im Batch-Modus, und mit dem
+        SONAR-Datensatz überprüfen (60 Messgrößen je Beispiel, intern 61 Gewichte wegen
+        des als Eingang codierten Schwellwerts, Ziel M/R auf 0/1 abgebildet). Nach dem
+        Training: Fehlschläge zählen und ausgeben, Online- mit Batch-Modus vergleichen.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Die Animation in Teil C zeigt
+        denselben Lernalgorithmus an einem winzigen, zweidimensionalen Beispiel, an dem
+        sich die wandernde Trenngerade noch mit bloßem Auge verfolgen lässt. Der
+        SONAR-Datensatz der Übung nutzt genau denselben Algorithmus, nur in 60 statt 2
+        Dimensionen, wo sich die „Trenngerade" nicht mehr zeichnen, aber identisch
+        berechnen lässt.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Der Vergleich Online- vs.
+        Batch-Modus aus der Übung lässt sich direkt mit den Begriffen aus Abschnitt 2
+        verbinden: Online-Lernen konvergiert typischerweise mit vielen „Sprüngen" im
+        Gewichtsvektor – wie in der Animation sichtbar –, passt sich aber sofort an neue
+        Daten an; Batch-Lernen konvergiert gezielter, braucht aber alle Daten im Voraus
+        und mehr Speicher.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        Dieses Modul beginnt einen neuen Strang im Kurs – Neuronale Netze (VL 07–08) und
+        darauf aufbauend Wettbewerbslernen (VL 09) – unabhängig vom TSP- und
+        Zoo-Datensatz-Strang der übrigen Module.
+      </p>
+      <p>
+        <strong>VL 08 – Neuronale Netze II</strong> baut direkt auf der hier gezeigten
+        Grenze auf: Ein einzelnes Perzeptron kann nicht linear separierbare Mengen wie
+        XOR nicht klassifizieren. Genau das motiviert mehrschichtige Netze und das
+        Verfahren der Fehlerrückführung (Backpropagation).
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der Hebbschen Lernregel?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Hebbsche Lernregel besagt, dass sich die Verbindung zwischen zwei
+            Neuronen verstärkt, wenn beide gleichzeitig aktiv sind – zusammengefasst als
+            „what fires together, wires together". Formal wird das Gewicht einer
+            Verbindung um Δw = η·oᵢ·oⱼ erhöht, wobei oᵢ und oⱼ die Aktivität der beiden
+            verbundenen Neuronen sind. Es handelt sich um unüberwachtes Lernen, da kein
+            Zielwert vorgegeben wird, sondern nur die gleichzeitige Aktivierung zählt –
+            das klassische Beispiel ist die Konditionierung des Pawlowschen Hundes.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einer Hyperebene, und wie hängt sie mit einem einzelnen Perzeptron zusammen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Hyperebene ist eine (n−1)-dimensionale Fläche im n-dimensionalen
+            Raum – bei einer Eingabe ein Punkt, bei zwei Eingaben eine Gerade, bei drei
+            Eingaben eine Ebene. Ein einzelnes Perzeptron berechnet mit seinem
+            Gewichtsvektor genau eine solche Hyperebene und teilt den Eingaberaum
+            dadurch linear in zwei Klassen. Für welche Eingaben das Perzeptron feuert,
+            hängt davon ab, auf welcher Seite dieser Hyperebene ein Punkt liegt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter linearer Separierbarkeit?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Zwei Mengen heißen linear separierbar, wenn eine Hyperebene existiert, die
+            sie vollständig voneinander trennt – jeder Punkt der einen Menge liegt auf
+            der einen, jeder Punkt der anderen Menge auf der anderen Seite. Das ist die
+            zentrale Voraussetzung dafür, dass der Perzeptron-Lernalgorithmus
+            konvergiert: Nur wenn eine solche trennende Hyperebene existiert, kann das
+            Perzeptron sie durch wiederholte Gewichtsanpassung überhaupt finden.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich ein MCP-Neuron von einem Perzeptron?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein MCP-Neuron hat binäre Ein- und Ausgabesignale, einen fest vorgegebenen
+            Schwellwert und kann nicht lernen – Aufbau und Schwellwerte müssen von Hand
+            festgelegt werden. Ein Perzeptron akzeptiert dagegen reellwertige,
+            gewichtete Eingaben und passt seine Gewichte über die Perzeptron-Lernregel
+            selbstständig anhand von Trainingsbeispielen an. Das Perzeptron baut auf dem
+            MCP-Neuron auf, ist aber durch diese Lernfähigkeit deutlich mächtiger, bei
+            gleichzeitig einfacherer Struktur als ein MCP-Netz mit Hebbscher Lernregel.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Online-Lernen von Batch-Lernen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Beim Online-Lernen wird der Gewichtsvektor direkt nach jedem einzelnen
+            Trainingsmuster angepasst, was eine kontinuierliche Anpassung an neue Daten
+            erlaubt, aber zu vielen „Sprüngen" im Gewichtsvektor und einem verlängerten
+            Lernprozess führen kann. Beim Batch-Lernen werden zunächst alle
+            Trainingsmuster durchlaufen und die Korrekturen gemittelt, bevor die
+            Gewichte einmal angepasst werden – das konvergiert gezielter, benötigt aber
+            alle Daten im Voraus und mehr Speicher. Ein Kompromiss ist das Minibatch-
+            Lernen, bei dem nur ein Teil der Daten zusammengefasst wird.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich exzitatorische und inhibitorische Eingänge bei einem MCP-Neuron?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Exzitatorische Eingänge zählen auf die Summe ein, die mit dem Schwellwert
+            verglichen wird – sie wirken erregend. Inhibitorische Eingänge wirken
+            hemmend: Sobald auch nur einer von ihnen aktiv ist, feuert das Neuron nicht,
+            unabhängig davon, wie hoch die Summe der erregenden Eingänge ist. Diese
+            Unterscheidung erlaubt es, mit MCP-Neuronen zum Beispiel ein NICHT-Gatter zu
+            bauen, bei dem ein einzelner inhibitorischer Eingang die Ausgabe invertiert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie trainieren ein einzelnes Perzeptron auf einem Datensatz, und der Lernalgorithmus terminiert nicht – woran könnte das liegen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Der Perzeptron-Lernalgorithmus konvergiert nachweislich nur, wenn die
+            Trainingsmenge linear separierbar ist. Terminiert er nicht, ist die
+            wahrscheinlichste Ursache, dass keine Hyperebene existiert, die die beiden
+            Klassen vollständig trennt – das klassische Beispiel dafür ist die
+            Exklusiv-Oder-Funktion. In diesem Fall würde ich entweder die Daten
+            transformieren, sodass sie linear separierbar werden, oder auf ein
+            mehrschichtiges Netz mit nichtlinearer Klassifikationsfähigkeit wechseln.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten kontinuierlich neue Messdaten in Ihr Perzeptron einfließen lassen, sobald sie eintreffen – Online- oder Batch-Lernen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Für diesen Fall eignet sich Online-Lernen deutlich besser, da es genau
+            dafür gedacht ist: Nach jedem neuen Trainingsmuster werden die Gewichte
+            sofort angepasst, ohne dass alle Daten im Voraus bekannt sein müssen.
+            Batch-Lernen würde dagegen erfordern, entweder auf eine vollständige neue
+            Datenmenge zu warten oder ständig mit dem gesamten bisherigen Datensatz neu
+            zu rechnen, was für kontinuierlich eintreffende Daten unpraktikabel ist.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie sollen mit MCP-Neuronen die boolesche Funktion f(x) = ¬(x₁∧x₂) ∨ (x₃∨x₄) realisieren – wie gehen Sie vor?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ich würde die Funktion in ihre logischen Grundoperationen zerlegen und
+            für jede ein MCP-Neuron bauen: ein UND-Gatter mit Schwellwert 2 für x₁∧x₂,
+            ein NICHT-Gatter mit Schwellwert 0 und inhibitorischem Eingang für die
+            Negation, ein ODER-Gatter mit Schwellwert 1 für x₃∨x₄, und ein letztes
+            ODER-Gatter, das die Ausgaben des NICHT-Gatters und des zweiten
+            ODER-Gatters zusammenführt. Die Ausgabe eines Neurons dient dabei jeweils
+            als Eingabe des nächsten – genau wie im entsprechenden Beispiel der
+            Vorlesung.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">MCP-Neuron und Perzeptron gleichsetzen:</span> Das
+        MCP-Neuron kann nicht lernen, Aufbau und Schwellwerte müssen von Hand definiert
+        werden; erst das Perzeptron passt seine Gewichte selbstständig an.</li>
+        <li><span class="as-achtung">Hebbsches Lernen mit dem Perzeptron-Lernalgorithmus
+        verwechseln:</span> Hebbsches Lernen ist unüberwacht, der
+        Perzeptron-Lernalgorithmus überwacht und nutzt einen bekannten Zielwert je
+        Trainingsmuster.</li>
+        <li><span class="as-achtung">Annehmen, ein Perzeptron könne jede Menge
+        klassifizieren:</span> Der Lernalgorithmus konvergiert nur bei linear
+        separierbaren Mengen – das klassische Gegenbeispiel ist XOR.</li>
+        <li><span class="as-achtung">Schwellwert und Gewicht als getrennte Konzepte
+        behandeln:</span> In der gebräuchlichen Notation wird der Schwellwert als
+        zusätzlicher Eingang x₀=1 mit Gewicht w₀=−S codiert und dadurch wie ein
+        normales Gewicht gelernt.</li>
+        <li><span class="as-achtung">Online-Lernen für grundsätzlich schlechter als
+        Batch-Lernen halten:</span> Beide haben eigene Vor- und Nachteile – Online
+        eignet sich für kontinuierlich eintreffende Daten, Batch konvergiert gezielter,
+        braucht aber mehr Speicher.</li>
+        <li><span class="as-achtung">Vergessen, dass mehrere Ausgabeneuronen mehrere
+        unabhängige Hyperebenen erzeugen:</span> Jedes Ausgabeneuron wird beim Lernen
+        einzeln angepasst, wodurch ein Element mehreren Klassen gleichzeitig angehören
+        kann.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      // ---------- Teil A: MCP-Neuron als Logikgatter ----------
+
+      function mcp(inputs, exzIdx, inhIdx, S) {
+        var summe = exzIdx.reduce(function (s, i) { return s + inputs[i]; }, 0);
+        var gehemmt = inhIdx.some(function (i) { return inputs[i] === 1; });
+        return gehemmt ? 0 : (summe >= S ? 1 : 0);
+      }
+
+      var GATTER = [
+        { id: "and", titel: "UND (S=2)", eingaben: 2, exz: [0, 1], inh: [], S: 2 },
+        { id: "or", titel: "ODER (S=1)", eingaben: 2, exz: [0, 1], inh: [], S: 1 },
+        { id: "not", titel: "NICHT (S=0)", eingaben: 1, exz: [], inh: [0], S: 0 }
+      ];
+
+      function buildGatterRow() {
+        var row = document.getElementById("gatter-row");
+        GATTER.forEach(function (g) {
+          var karte = document.createElement("div");
+          karte.className = "gatter-karte";
+          karte.dataset.versteckt = "true";
+          karte.id = "gatter-" + g.id;
+
+          var titel = document.createElement("div");
+          titel.className = "gatter-karte__titel";
+          titel.textContent = g.titel;
+          karte.appendChild(titel);
+
+          var tabelle = document.createElement("table");
+          tabelle.className = "gatter-tabelle";
+          var kopf = document.createElement("tr");
+          for (var i = 0; i < g.eingaben; i++) {
+            var th = document.createElement("th"); th.textContent = "x" + (i + 1); kopf.appendChild(th);
+          }
+          var thO = document.createElement("th"); thO.textContent = "O"; kopf.appendChild(thO);
+          tabelle.appendChild(kopf);
+
+          var kombinationen = g.eingaben === 1 ? [[0], [1]] : [[0, 0], [1, 0], [0, 1], [1, 1]];
+          kombinationen.forEach(function (kombi) {
+            var row2 = document.createElement("tr");
+            kombi.forEach(function (v) {
+              var td = document.createElement("td"); td.textContent = v; row2.appendChild(td);
+            });
+            var tdO = document.createElement("td");
+            tdO.textContent = mcp(kombi, g.exz, g.inh, g.S);
+            row2.appendChild(tdO);
+            tabelle.appendChild(row2);
+          });
+
+          karte.appendChild(tabelle);
+          row.appendChild(karte);
+        });
+      }
+
+      function setGatterSchritt(index) {
+        GATTER.forEach(function (g, i) {
+          document.getElementById("gatter-" + g.id).dataset.versteckt = i <= index ? "false" : "true";
+        });
+      }
+
+      // ---------- Teil B: Hebbsches Lernen ----------
+
+      function drawHebb(staerke) {
+        var svg = document.getElementById("hebb-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        if (staerke === null) return;
+        var glocke = { x: 40, y: 25 }, essen = { x: 40, y: 75 }, speichel = { x: 150, y: 50 };
+
+        svg.appendChild(svgEl("line", { x1: essen.x, y1: essen.y, x2: speichel.x, y2: speichel.y, stroke: "var(--as-begriff)", "stroke-width": 1.4 }));
+        svg.appendChild(svgEl("line", { x1: glocke.x, y1: glocke.y, x2: speichel.x, y2: speichel.y, stroke: "var(--as-akzent)", "stroke-width": 0.6 + staerke * 3.5 }));
+
+        [["Glocke", glocke], ["Essen", essen], ["Speichel", speichel]].forEach(function (paar) {
+          svg.appendChild(svgEl("circle", { cx: paar[1].x, cy: paar[1].y, r: 20, class: "hebb-knoten" }));
+          svg.appendChild(svgEl("text", { x: paar[1].x, y: paar[1].y + 3, class: "hebb-text" })).textContent = paar[0];
+        });
+      }
+
+      // ---------- Teil C: Perzeptron ----------
+
+      var PUNKTE = [
+        { x1: 1, x2: 0.5, ziel: 0 },
+        { x1: 0.5, x2: 0.5, ziel: 1 },
+        { x1: -0.5, x2: 1, ziel: 1 }
+      ];
+      var GEWICHTSFOLGE = [[0, 0, 1], [-1, -1, 0.5], [0, -0.5, 1], [-1, -1.5, 0.5], [0, -1, 1]];
+
+      var X_MIN = -1.2, X_MAX = 1.5, Y_MIN = -0.3, Y_MAX = 1.5;
+      function xPx(x) { return 15 + (x - X_MIN) / (X_MAX - X_MIN) * 170; }
+      function yPx(y) { return 115 - (y - Y_MIN) / (Y_MAX - Y_MIN) * 100; }
+
+      function drawPerzeptron(index) {
+        var svg = document.getElementById("prz-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        if (index === null) {
+          document.getElementById("prz-gewichte").textContent = "";
+          return;
+        }
+        svg.appendChild(svgEl("line", { x1: xPx(X_MIN), y1: yPx(0), x2: xPx(X_MAX), y2: yPx(0), class: "prz-achse" }));
+        svg.appendChild(svgEl("line", { x1: xPx(0), y1: yPx(Y_MIN), x2: xPx(0), y2: yPx(Y_MAX), class: "prz-achse" }));
+
+        var w = GEWICHTSFOLGE[index];
+        if (Math.abs(w[2]) > 1e-9) {
+          var y1 = -(w[0] + w[1] * X_MIN) / w[2];
+          var y2 = -(w[0] + w[1] * X_MAX) / w[2];
+          svg.appendChild(svgEl("line", { x1: xPx(X_MIN), y1: yPx(y1), x2: xPx(X_MAX), y2: yPx(y2), class: "prz-linie" }));
+        }
+
+        PUNKTE.forEach(function (p, i) {
+          svg.appendChild(svgEl("circle", { cx: xPx(p.x1), cy: yPx(p.x2), r: 5, class: "prz-punkt-" + p.ziel }));
+          svg.appendChild(svgEl("text", { x: xPx(p.x1) + 7, y: yPx(p.x2) - 6, class: "prz-text" })).textContent = "Muster " + (i + 1);
+        });
+
+        document.getElementById("prz-gewichte").textContent =
+          "w = (" + w.map(function (v) { return v.toFixed(2); }).join(", ") + ")  – rot: Ziel 0, blau: Ziel 1";
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Ein MCP-Neuron feuert (Ausgabe 1), wenn die Summe seiner erregenden Eingaben den Schwellwert S erreicht und kein hemmender Eingang aktiv ist. Damit lassen sich schon einfache logische Gatter bauen.",
+        "Ein UND-Gatter braucht zwei erregende Eingänge und den Schwellwert S=2: Nur wenn beide Eingänge aktiv sind, erreicht die Summe den Schwellwert.",
+        "Ein ODER-Gatter nutzt dieselben zwei erregenden Eingänge, aber einen niedrigeren Schwellwert S=1: Schon ein aktiver Eingang genügt.",
+        "Ein NICHT-Gatter nutzt einen einzelnen hemmenden Eingang mit Schwellwert S=0: Das Neuron feuert nur, wenn der Eingang nicht aktiv ist. Aus UND, ODER und NICHT lässt sich jede boolesche Funktion zusammensetzen.",
+        "Beim Pawlowschen Hund sind zunächst Glocke und Essen gleichzeitig aktiv, und auch das Neuron „Speichel“ ist aktiv – aber die Verbindung zwischen Glocke und Speichel ist noch schwach.",
+        "Die Hebbsche Lernregel erhöht das Gewicht einer Verbindung, wenn beide verbundenen Neuronen gleichzeitig aktiv sind – „what fires together, wires together“. Die Verbindung Glocke→Speichel wird dadurch stärker.",
+        "Ergebnis: Nach ausreichend Wiederholungen aktiviert allein das Läuten der Glocke schon das Neuron „Speichel“ – ganz ohne dass Essen gegeben wird.",
+        "Ein Perzeptron trennt die Ebene durch eine Gerade (bei zwei Eingaben) in zwei Klassen. Startgewichte hier: w = (0, 0, 1) – die Trenngerade liegt waagerecht bei x₂ = 0.",
+        "Das erste Trainingsmuster wird falsch klassifiziert. Die Perzeptron-Lernregel passt die Gewichte an: w ← w + η·(Ziel−Ausgabe)·x. Die Trenngerade springt an eine neue Position.",
+        "Ein weiteres Trainingsmuster wird falsch klassifiziert – die Gerade bewegt sich erneut.",
+        "Das erste Muster wird nach der letzten Anpassung wieder falsch eingeordnet – auch das korrigiert die Lernregel.",
+        "Nach einer letzten Anpassung klassifiziert die Trenngerade alle drei Trainingsmuster korrekt – der Perzeptron-Lernalgorithmus ist konvergiert, weil die Muster linear separierbar sind."
+      ];
+
+      function render(step) {
+        setGatterSchritt(step >= 1 ? Math.min(step - 1, 2) : -1);
+
+        if (step >= 4) {
+          var hebbStep = Math.min(step - 4, 2);
+          drawHebb(hebbStep === 0 ? 0.1 : hebbStep === 1 ? 0.55 : 1.0);
+        } else {
+          drawHebb(null);
+        }
+
+        if (step >= 7) {
+          drawPerzeptron(Math.min(step - 7, GEWICHTSFOLGE.length - 1));
+        } else {
+          drawPerzeptron(null);
+        }
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        buildGatterRow();
+
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

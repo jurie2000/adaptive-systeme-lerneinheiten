@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 03 – Evolutionäre Algorithmen I · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout für die EA-Animation. Nutzt ausschließlich
+       Farbwerte aus theme.css (var(--as-*)) - definiert keine eigenen Farben. */
+    .modul-wrapper {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl);
+    }
+
+    .modul-kopf {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--as-abstand-s);
+      padding: var(--as-abstand-m);
+      border-bottom: 1px solid var(--as-rahmen);
+      margin-bottom: var(--as-abstand-l);
+    }
+
+    .modul-kopf__meta {
+      color: var(--as-text-gedaempft);
+      font-size: 0.85rem;
+      margin: 0.2em 0 0;
+    }
+
+    .quelle-link {
+      font-size: 0.8rem;
+      color: var(--as-text-gedaempft);
+    }
+
+    section {
+      margin-bottom: var(--as-abstand-xl);
+    }
+
+    section h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5em;
+    }
+
+    section h2 .modul-nr {
+      color: var(--as-text-gedaempft);
+      font-size: 0.8em;
+      font-weight: 400;
+    }
+
+    .begriffe-liste {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--as-abstand-m);
+      padding: 0;
+      margin: 0;
+    }
+
+    .begriffe-liste dt {
+      font-weight: 600;
+      color: var(--as-begriff);
+    }
+
+    .begriffe-liste dd {
+      margin: 0.2em 0 0;
+    }
+
+    .bestandteile-liste {
+      display: grid;
+      gap: var(--as-abstand-m);
+    }
+
+    .bestandteil {
+      display: grid;
+      grid-template-columns: 10rem 1fr;
+      gap: var(--as-abstand-m);
+      align-items: start;
+    }
+
+    .bestandteil dt {
+      font-weight: 600;
+      color: var(--as-ablauf);
+    }
+
+    .bestandteil dd {
+      margin: 0;
+    }
+
+    @media (max-width: 480px) {
+      .bestandteil {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    ol.ablauf-liste li {
+      margin-bottom: 0.6em;
+    }
+
+    details.pseudocode {
+      margin-top: var(--as-abstand-m);
+    }
+
+    details.pseudocode summary {
+      cursor: pointer;
+      color: var(--as-text-gedaempft);
+      font-size: 0.85rem;
+    }
+
+    /* ---------- EA-Animation ---------- */
+
+    .ea-legende {
+      display: flex;
+      align-items: center;
+      gap: var(--as-abstand-m);
+      margin-bottom: var(--as-abstand-m);
+    }
+
+    .ea-legende svg {
+      width: 110px;
+      height: 110px;
+      background: var(--as-flaeche-erhoeht);
+      border: 1px solid var(--as-rahmen);
+      border-radius: var(--as-radius-s);
+    }
+
+    .ea-legende p {
+      margin: 0;
+      color: var(--as-text-gedaempft);
+      font-size: 0.85rem;
+      max-width: 40ch;
+    }
+
+    .ea-population-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--as-abstand-s);
+    }
+
+    .ea-slot {
+      flex: 0 0 100px;
+      text-align: center;
+      opacity: 1;
+      transition: opacity var(--as-transition);
+    }
+
+    .ea-slot[data-versteckt="true"] {
+      display: none;
+    }
+
+    .ea-slot[data-verworfen="true"] {
+      opacity: 0.35;
+    }
+
+    .ea-slot__svg {
+      width: 100px;
+      height: 100px;
+      background: var(--as-flaeche-erhoeht);
+      border: 2px solid var(--as-rahmen);
+      border-radius: var(--as-radius-s);
+    }
+
+    .ea-slot[data-hervorgehoben="true"] .ea-slot__svg {
+      border-color: var(--as-akzent);
+    }
+
+    .ea-slot[data-ueberlebt="true"] .ea-slot__svg {
+      border-color: var(--as-ablauf);
+    }
+
+    .ea-slot__tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-top: 0.3em;
+      color: var(--as-text);
+    }
+
+    .ea-slot__laenge {
+      font-size: 0.72rem;
+      color: var(--as-text-gedaempft);
+      min-height: 1.1em;
+    }
+
+    .ea-stadt {
+      fill: var(--as-text-gedaempft);
+    }
+
+    .ea-stadt--hervorgehoben {
+      fill: var(--as-akzent);
+    }
+
+    .ea-stadt-label {
+      font-size: 7px;
+      fill: var(--as-text-gedaempft);
+    }
+
+    .ea-pfad {
+      fill: none;
+      stroke: var(--as-begriff);
+      stroke-width: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 03 – Evolutionäre Algorithmen I</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Ein evolutionärer Algorithmus löst Optimierungsprobleme, indem er das Prinzip der
+        biologischen Evolution nachahmt: Eine Population von Lösungskandidaten wird über
+        viele Generationen durch Selektion, Rekombination und Mutation verändert, wobei
+        sich bessere Lösungen im Mittel durchsetzen. Man setzt ihn vor allem dann ein, wenn
+        die Zielfunktion nicht differenzierbar ist oder der Suchraum zu groß und komplex
+        für ein exaktes oder gradientenbasiertes Verfahren ist. Anders als beim einfachen
+        Hill Climbing, das nur einen einzigen Kandidaten Schritt für Schritt verbessert,
+        arbeitet ein evolutionärer Algorithmus mit einer ganzen Population gleichzeitig.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Individuum</dt><dd>Ein einzelner Lösungskandidat – beim TSP eine mögliche Rundreise durch alle Städte.</dd></div>
+        <div><dt>Population</dt><dd>Die Menge aller Individuen, die der Algorithmus zu einem Zeitpunkt gleichzeitig betrachtet.</dd></div>
+        <div><dt>Generation</dt><dd>Der Zustand der Population zu einem bestimmten Zeitpunkt im Ablauf.</dd></div>
+        <div><dt>Fitness</dt><dd>Ein Wert, der ausdrückt, wie gut ein Individuum das Problem löst – beim TSP die (invertierte) Länge der Rundreise.</dd></div>
+        <div><dt>Fitnessfunktion</dt><dd>Die Rechenvorschrift, mit der die Fitness eines Individuums bestimmt wird.</dd></div>
+        <div><dt>Genotyp</dt><dd>Die abstrakte, DNA-ähnliche Darstellung eines Individuums, auf der die Mutation direkt stattfindet.</dd></div>
+        <div><dt>Phänotyp</dt><dd>Die konkrete Darstellung, die die eigentliche Lösung beschreibt und die die Fitnessfunktion auswertet.</dd></div>
+        <div><dt>Elternselektion</dt><dd>Die Auswahl, welche Individuen der aktuellen Population Nachkommen erzeugen dürfen.</dd></div>
+        <div><dt>Rekombination</dt><dd>Das Erzeugen neuer Nachkommen aus den ausgewählten Eltern.</dd></div>
+        <div><dt>Mutation</dt><dd>Eine zufällige Veränderung an einem Individuum bzw. seinem Genotyp.</dd></div>
+        <div><dt>Umweltselektion</dt><dd>Die Auswahl, welche Individuen aus Eltern- und Kinderpopulation in die nächste Generation übernommen werden.</dd></div>
+        <div><dt>Kausalität (stark/schwach)</dt><dd>Beschreibt, wie stark sich eine kleine Ursache – etwa eine Mutation – auf die Wirkung, die Fitness, auswirkt.</dd></div>
+        <div><dt>Lokales/Globales Optimum</dt><dd>Die beste Lösung in einer Umgebung (lokal) beziehungsweise im gesamten Suchraum (global).</dd></div>
+        <div><dt>Pareto-Optimum</dt><dd>Bei mehreren Zielen eine Lösung, bei der kein Ziel verbessert werden kann, ohne ein anderes zu verschlechtern.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil">
+          <dt>Elternselektion</dt>
+          <dd>Wählt aus, welche Individuen der aktuellen Population an der Fortpflanzung teilnehmen. Beispiel Übung 3: zufällige Ziehung von <span class="as-begriff">k</span> Individuen aus der Elternpopulation.</dd>
+        </div>
+        <div class="bestandteil">
+          <dt>Rekombination</dt>
+          <dd>Erzeugt aus den gewählten Eltern neue Nachkommen. In vollständigen EAs werden dabei Eigenschaften mehrerer Eltern gemischt; in Übung 3 ist sie bewusst vereinfacht und kopiert die Eltern lediglich.</dd>
+        </div>
+        <div class="bestandteil">
+          <dt>Mutation</dt>
+          <dd>Verändert ein Individuum zufällig und sorgt so für neue Varianten – beim TSP durch Vertauschen zweier Städte in der Besuchsreihenfolge.</dd>
+        </div>
+        <div class="bestandteil">
+          <dt>Bewertung (Fitnessfunktion)</dt>
+          <dd>Berechnet für jedes Individuum einen Gütewert – beim TSP die Länge der Rundreise.</dd>
+        </div>
+        <div class="bestandteil">
+          <dt>Umweltselektion</dt>
+          <dd>Entscheidet, welche Individuen aus Eltern- und Kinderpopulation die nächste Generation bilden – in Übung 3 die <span class="as-begriff">n</span> besten.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+      <ol class="ablauf-liste">
+        <li>Zu Beginn wird eine Startpopulation von Individuen erzeugt und bewertet – beim TSP zum Beispiel mehrere zufällige Rundreisen durch alle Städte.</li>
+        <li>Der Algorithmus prüft, ob ein Abbruchkriterium erreicht ist, etwa eine feste Anzahl an Generationen oder eine ausreichend gute Lösung; ist das der Fall, endet er und gibt das beste bisher gefundene Individuum zurück.</li>
+        <li>Ist das Ziel noch nicht erreicht, wählt die Elternselektion eine Anzahl von Individuen aus der aktuellen Population als Eltern für neue Nachkommen aus.</li>
+        <li>Aus diesen Eltern erzeugt die Rekombination neue Kindindividuen – im einfachsten Fall, wie in Übung 3, durch reines Kopieren der Eltern.</li>
+        <li>Jedes neue Kind wird mutiert, beim TSP zum Beispiel durch Vertauschen zweier Städte in der Besuchsreihenfolge.</li>
+        <li>Die Fitnessfunktion bewertet die neuen Kinder.</li>
+        <li>Die Umweltselektion wählt aus der Vereinigung von Eltern- und Kinderpopulation die Individuen aus, die in die nächste Generation übernommen werden – üblicherweise die fittesten.</li>
+        <li>Der Algorithmus springt zurück zu Schritt 2 und wiederholt den Zyklus, bis das Abbruchkriterium erreicht ist.</li>
+      </ol>
+      <details class="pseudocode">
+        <summary>Zum Nachschlagen: Pseudocode aus der Vorlesung</summary>
+        <pre><code>g &lt;- Initialisiere und bewerte Ausgangsgeneration
+while Ziel noch nicht erreicht:
+    p &lt;- {}
+    while |p| &lt; Anzahl gewünschter Nachkommen:
+        parent1, ..., parentn &lt;- Selektiere Individuen aus g
+        child &lt;- Rekombiniere parent1, ..., parentn
+        Mutiere child
+        p &lt;- p ∪ {child}
+    Bewerte Individuen in p
+    g &lt;- Selektiere Individuen aus p ∪ g
+return bestes Individuum aus letzter Generation</code></pre>
+      </details>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Der EA-Grundzyklus am TSP</h2>
+      <p>
+        Die Animation zeigt eine Generation des in Übung 3 verwendeten evolutionären
+        Algorithmus für sechs feste Städte (A–F). Jeder Schritt entspricht einem Baustein
+        aus Abschnitt 3. Die angezeigten Streckenlängen berechnet der Browser direkt aus
+        den Stadtkoordinaten der Legende.
+      </p>
+
+      <div class="ea-legende">
+        <svg id="ea-legende-svg" viewBox="0 0 100 100"></svg>
+        <p>Städtekarte: Alle sechs Individuen und Kinder verbinden dieselben sechs Städte A–F, nur in unterschiedlicher Reihenfolge.</p>
+      </div>
+
+      <div class="ea-population-row" id="ea-population-row"></div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Aufbauend auf der TSP-Datenstruktur aus Übung 1
+        sollte zunächst Hill Climbing implementiert werden – alle 0,1 ms ein Schritt, als
+        Veränderung das Vertauschen zweier Städte, mit einer eigenen Überlegung zum
+        Abbruchkriterium. Danach war dasselbe TSP mit einem evolutionären Algorithmus zu
+        lösen: Elternpopulation der Größe <span class="as-begriff">n</span>,
+        Elternselektion durch zufällige Ziehung von <span class="as-begriff">k</span>
+        Individuen, Rekombination durch reines Kopieren der Eltern, Mutation durch
+        Vertauschen zweier Städte und Umweltselektion durch Auswahl der
+        <span class="as-begriff">n</span> besten Individuen aus Eltern- und
+        Kinderpopulation.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Der direkte Vergleich desselben
+        Problems mit zwei Verfahren – Hill Climbing mit einem einzelnen Kandidaten, der
+        sich monoton verbessert, aber leicht steckenbleiben kann, gegenüber einem
+        evolutionären Algorithmus mit mehreren parallelen Kandidaten. Zusätzlich lässt sich
+        beobachten, wie die Parameter <span class="as-begriff">k</span> und
+        <span class="as-begriff">n</span> die Geschwindigkeit beeinflussen, mit der sich
+        die Population verbessert.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> In diesem Praktikum bedeutet
+        „Rekombination" ausdrücklich nur Kopieren – ein echter Austausch von
+        Streckenabschnitten zwischen zwei Eltern (Crossover) kommt hier noch nicht vor,
+        das folgt erst in VL 04. Der hier implementierte EA verhält sich dadurch im Kern
+        wie mehrere parallele Hill-Climbing-Läufe mit gemeinsamem Auswahldruck durch die
+        Umweltselektion.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>TSP-Strang:</strong> Übung 1 (TSP-Datenstruktur) → Übung 3 (Hill Climbing
+        und erster EA, dieses Modul) → Übung 4 (Operatorenvergleich, VL 04) → Übung 5
+        (lokale Suche mit Akzeptanzfunktionen, VL 05) → Übung 6 (Ameisenkolonie-Optimierung,
+        VL 06). Das gemeinsame Vergleichskriterium entlang dieses Strangs: Wie systematisch
+        durchsucht das Verfahren den Lösungsraum, und wie gut entkommt es lokalen Optima?
+      </p>
+      <p>
+        <strong>VL 04 – Evolutionäre Algorithmen II</strong> vertieft die hier nur grob
+        skizzierten Bausteine Mutation, Rekombination und Selektion um konkrete
+        Operatorenvarianten und zeigt, warum ein einzelner Operator leicht in ein lokales
+        Optimum führt.
+      </p>
+      <p>
+        <strong>VL 05 – Evolutionäre Algorithmen III</strong> stellt mit genetischen
+        Algorithmen, Evolutionsstrategien und genetischer Programmierung weitere
+        Ausprägungen desselben Grundzyklus vor.
+      </p>
+      <p>
+        <strong>VL 06 – Schwarmintelligenz</strong> löst dasselbe TSP mit einem
+        gänzlich anderen, ebenfalls populationsbasierten Prinzip ohne zentrale
+        Rekombination (Ameisenkolonie-Optimierung) – eine gute Vergleichsfolie zur Frage,
+        was an einem evolutionären Algorithmus tatsächlich „evolutionär" ist.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einem evolutionären Algorithmus?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein evolutionärer Algorithmus ist ein Optimierungsverfahren, das das Prinzip
+            der biologischen Evolution nachahmt. Er arbeitet mit einer Population von
+            Lösungskandidaten, die über mehrere Generationen hinweg durch Elternselektion,
+            Rekombination, Mutation und Umweltselektion verändert werden. Individuen mit
+            besserer Fitness setzen sich dabei im Mittel eher durch. Man nutzt solche
+            Verfahren vor allem dann, wenn die Zielfunktion nicht differenzierbar ist oder
+            der Suchraum zu komplex für exakte oder gradientenbasierte Methoden ist.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der Umweltselektion in einem evolutionären Algorithmus?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Umweltselektion ist der Schritt, in dem entschieden wird, welche
+            Individuen aus der Vereinigung von Eltern- und Kinderpopulation tatsächlich in
+            die nächste Generation übernommen werden. Meist orientiert sie sich an der
+            Fitness und behält die besten Individuen, etwa die n besten aus Eltern- und
+            Kinderpopulation, wie es auch in Übung 3 umgesetzt wird. Sie sorgt damit dafür,
+            dass sich die Population über die Generationen hinweg tendenziell verbessert,
+            ohne die Populationsgröße wachsen zu lassen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einem Pareto-Optimum?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein Pareto-Optimum tritt bei Problemen mit mehreren, sich teils
+            widersprechenden Zielfunktionen auf, etwa wenn gleichzeitig Kosten und Fahrzeit
+            minimiert werden sollen. Eine Lösung heißt Pareto-optimal, wenn sich keines der
+            Ziele mehr verbessern lässt, ohne dass sich mindestens ein anderes Ziel
+            verschlechtert. Die Menge aller Pareto-optimalen Lösungen bildet die
+            sogenannte Pareto-Front, aus der man je nach Präferenz auswählen kann, anstatt
+            von vornherein eine einzelne, aggregierte Lösung vorzugeben.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Hill Climbing von einem vollständigen evolutionären Algorithmus?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Hill Climbing arbeitet mit genau einem Lösungskandidaten, der in jedem
+            Schritt leicht verändert und nur bei einer Verbesserung übernommen wird – die
+            Vorlesung bezeichnet es deshalb als den einfachsten evolutionären Algorithmus.
+            Ein vollständiger evolutionärer Algorithmus arbeitet dagegen mit einer ganzen
+            Population, kombiniert über die Rekombination Eigenschaften mehrerer Eltern und
+            kann durch die Umweltselektion auch mehrere Lösungsansätze parallel
+            weiterverfolgen. Dadurch entkommt er tendenziell leichter lokalen Optima als
+            das rein lokale Hill Climbing.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich der Genotyp eines Individuums von seinem Phänotyp?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Der Phänotyp ist die Darstellung, die die eigentliche Lösung des Problems
+            beschreibt und auf der die Fitnessfunktion direkt arbeitet – beim TSP zum
+            Beispiel eine Liste von Kanten. Der Genotyp ist eine abstraktere, DNA-ähnliche
+            Darstellung, auf der die Mutation stattfindet, etwa eine Liste der besuchten
+            Städte in ihrer Reihenfolge. Vor der Bewertung muss der Genotyp erst in den
+            Phänotyp dekodiert werden. Der Vorteil des Genotyps ist, dass Mutationen dort
+            oft deutlich einfacher umzusetzen sind, ohne das konkrete Problem berücksichtigen
+            zu müssen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich starke von schwacher Kausalität?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Starke Kausalität bedeutet, dass eine kleine Änderung der Ursache – etwa
+            eine Mutation – auch nur eine kleine Änderung der Wirkung, also der Fitness,
+            zur Folge hat. Schwache Kausalität bedeutet, dass eine kleine Ursache eine
+            große, kaum vorhersehbare Wirkung haben kann, wie beim Billard-Effekt.
+            Evolutionäre Algorithmen verbessern Lösungen nach dem Prinzip der kleinen
+            Schritte über viele Generationen hinweg – das funktioniert nur zuverlässig,
+            wenn die Mutation starke Kausalität besitzt, sonst bewegen sich die Generationen
+            nicht gezielt auf ein Optimum zu.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihre Zielfunktion ist nicht differenzierbar und der Suchraum ist groß und komplex – welches Verfahren wählen Sie, und warum nicht das Gradientenverfahren?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das Gradientenverfahren benötigt eine differenzierbare Zielfunktion, um in
+            jedem Schritt den Gradienten zu berechnen und entlang dieser Richtung
+            abzusteigen – ist die Funktion nicht differenzierbar oder nur experimentell
+            punktuell bestimmbar, funktioniert das nicht. In diesem Fall würde ich
+            mindestens Hill Climbing als einfachste Alternative einsetzen, bei einem
+            großen, vermutlich multimodalen Suchraum eher einen vollständigen
+            evolutionären Algorithmus, der mit einer Population mehrere Bereiche des
+            Suchraums gleichzeitig exploriert und dadurch eher ein globales statt nur ein
+            lokales Optimum findet.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihr evolutionärer Algorithmus für das TSP erzeugt nach der Mutation Rundreisen, die eine Stadt doppelt besuchen. Was ist die Ursache, und wie beheben Sie das?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das TSP hat eine harte Randbedingung: Jede Stadt darf genau einmal besucht
+            werden, sonst ist das Individuum keine gültige Lösung. Passiert das, wurde die
+            Mutation vermutlich zu frei umgesetzt, etwa durch zufälliges Ersetzen einer
+            Stadt in der Liste statt eines Vertauschens. Die robuste Lösung ist eine
+            Mutation, die per Konstruktion nur gültige Individuen erzeugen kann – beim TSP
+            genau das Vertauschen zweier Städte in der Besuchsreihenfolge, wie es Übung 3
+            vorgibt, denn dabei bleibt die Liste immer eine Permutation aller Städte.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie sollen zwei sich widersprechende Ziele gleichzeitig optimieren, zum Beispiel Kosten und Fahrzeit einer Route. Wie gehen Sie vor?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das ist ein Fall von Mehrzieloptimierung, bei dem es in der Regel keine
+            einzelne, für beide Ziele gleichzeitig beste Lösung gibt. Ein gängiger Ansatz
+            ist ein aggregierendes Verfahren, das beide Fitnesswerte über eine gewichtete
+            Summe zu einem einzigen Wert zusammenfasst, den der EA dann wie gewohnt
+            optimiert. Alternativ kann ich die Menge der Pareto-optimalen Lösungen
+            bestimmen und mir am Ende die Pareto-Front ansehen, um je nach Situation
+            zwischen den nicht dominierten Kompromisslösungen zu wählen, statt vorab eine
+            feste Gewichtung festzulegen.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Rekombination mit Kopieren verwechseln:</span> In
+        Übung 3 erzeugt die Rekombination nur exakte Kopien der Eltern – kein echter
+        Crossover. Wer im Prüfungsgespräch pauschal sagt, Rekombination „mische die
+        Eigenschaften zweier Eltern", ohne diese Einschränkung bei diesem vereinfachten
+        Verfahren zu nennen, verwechselt die vollständige EA-Definition mit der
+        vereinfachten Praktikumsvariante.</li>
+        <li><span class="as-achtung">Hill Climbing als „kein evolutionärer Algorithmus"
+        abtun:</span> Laut Vorlesung ist es der erste, einfachste evolutionäre Algorithmus
+        – eine Population der Größe eins, ohne Rekombination.</li>
+        <li><span class="as-achtung">Genotyp und Phänotyp vertauschen:</span> Die Mutation
+        findet auf dem Genotyp statt, die Fitness wird auf dem Phänotyp berechnet.</li>
+        <li><span class="as-achtung">Annehmen, größere Parameter k oder n seien automatisch
+        besser:</span> Sie beeinflussen nur die Balance zwischen Rechenaufwand, Diversität
+        und Konvergenzgeschwindigkeit – kein Naturgesetz für „mehr ist besser".</li>
+        <li><span class="as-achtung">Glauben, ein EA finde garantiert das globale
+        Optimum:</span> Laut No-Free-Lunch-Theorem gibt es kein Verfahren, das für alle
+        Probleme optimal ist – auch ein evolutionärer Algorithmus kann in einem lokalen
+        Optimum steckenbleiben.</li>
+        <li><span class="as-achtung">Harte und weiche Randbedingungen verwechseln:</span>
+        Harte Randbedingungen müssen erfüllt sein, sonst ist die Lösung ungültig (z. B.
+        keine Stadt doppelt besuchen); weiche Randbedingungen sind nur erwünscht (z. B.
+        möglichst wenig ungenutzter Platz im Rucksackproblem).</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var CITY_POS = { A: [20, 20], B: [80, 15], C: [90, 60], D: [55, 90], E: [15, 70], F: [50, 45] };
+
+      var P1 = ["A", "B", "C", "D", "E", "F"];
+      var P2 = ["A", "C", "E", "B", "F", "D"];
+      var P3 = ["A", "F", "B", "D", "C", "E"];
+      var P4 = ["A", "E", "D", "F", "B", "C"];
+
+      function swapAt(order, i, j) {
+        var copy = order.slice();
+        var t = copy[i];
+        copy[i] = copy[j];
+        copy[j] = t;
+        return copy;
+      }
+
+      var C1 = swapAt(P2, 2, 4);
+      var C2 = swapAt(P4, 2, 4);
+
+      function tourLength(order) {
+        var total = 0;
+        for (var i = 0; i < order.length; i++) {
+          var a = CITY_POS[order[i]];
+          var b = CITY_POS[order[(i + 1) % order.length]];
+          total += Math.hypot(a[0] - b[0], a[1] - b[1]);
+        }
+        return total;
+      }
+
+      var NS = "http://www.w3.org/2000/svg";
+
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      function drawTour(svg, order, hervorgehobeneStaedte) {
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var points = order.map(function (c) { return CITY_POS[c]; });
+        var pointsAttr = points.concat([points[0]]).map(function (p) { return p[0] + "," + p[1]; }).join(" ");
+        svg.appendChild(svgEl("polyline", { points: pointsAttr, class: "ea-pfad" }));
+        order.forEach(function (c) {
+          var pos = CITY_POS[c];
+          var hervor = hervorgehobeneStaedte && hervorgehobeneStaedte.indexOf(c) !== -1;
+          svg.appendChild(svgEl("circle", {
+            cx: pos[0], cy: pos[1], r: hervor ? 5 : 3.5,
+            class: "ea-stadt" + (hervor ? " ea-stadt--hervorgehoben" : "")
+          }));
+        });
+      }
+
+      function drawLegende() {
+        var svg = document.getElementById("ea-legende-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        Object.keys(CITY_POS).forEach(function (c) {
+          var pos = CITY_POS[c];
+          svg.appendChild(svgEl("circle", { cx: pos[0], cy: pos[1], r: 4, class: "ea-stadt" }));
+          svg.appendChild(svgEl("text", { x: pos[0] + 5, y: pos[1] - 5, class: "ea-stadt-label" })).textContent = c;
+        });
+      }
+
+      var slotsConfig = [
+        { id: "p1", label: "Individuum 1", order: P1 },
+        { id: "p2", label: "Individuum 2", order: P2 },
+        { id: "p3", label: "Individuum 3", order: P3 },
+        { id: "p4", label: "Individuum 4", order: P4 },
+        { id: "c1", label: "Kind 1", order: C1 },
+        { id: "c2", label: "Kind 2", order: C2 }
+      ];
+
+      var slotEls = {};
+
+      function buildSlots() {
+        var row = document.getElementById("ea-population-row");
+        slotsConfig.forEach(function (cfg) {
+          var wrapper = document.createElement("div");
+          wrapper.className = "ea-slot";
+          wrapper.id = "slot-" + cfg.id;
+
+          var svg = svgEl("svg", { viewBox: "0 0 100 100", class: "ea-slot__svg" });
+          wrapper.appendChild(svg);
+
+          var tag = document.createElement("div");
+          tag.className = "ea-slot__tag";
+          tag.textContent = cfg.label;
+          wrapper.appendChild(tag);
+
+          var laenge = document.createElement("div");
+          laenge.className = "ea-slot__laenge";
+          wrapper.appendChild(laenge);
+
+          row.appendChild(wrapper);
+          slotEls[cfg.id] = { wrapper: wrapper, svg: svg, tag: tag, laenge: laenge };
+        });
+      }
+
+      function setSlot(id, order, opts) {
+        opts = opts || {};
+        var els = slotEls[id];
+        drawTour(els.svg, order, opts.hervorgehobeneStaedte);
+        els.wrapper.dataset.versteckt = opts.versteckt ? "true" : "false";
+        els.wrapper.dataset.hervorgehoben = opts.hervorgehoben ? "true" : "false";
+        els.wrapper.dataset.verworfen = opts.verworfen ? "true" : "false";
+        els.wrapper.dataset.ueberlebt = opts.ueberlebt ? "true" : "false";
+        els.laenge.textContent = opts.zeigeLaenge ? tourLength(order).toFixed(1) + " Einheiten" : "";
+      }
+
+      var SCHRITTE = [
+        "Die Startpopulation besteht aus vier Individuen – vier verschiedene Rundreisen durch dieselben sechs Städte A bis F.",
+        "Die Elternselektion zieht zufällig zwei Individuen aus der Population – hier Individuum 2 und Individuum 4.",
+        "Die Rekombination erzeugt in diesem vereinfachten Verfahren zunächst exakte Kopien der ausgewählten Eltern: Kind 1 ist eine Kopie von Individuum 2, Kind 2 eine Kopie von Individuum 4.",
+        "Jedes Kind wird mutiert, indem zwei Städte in der Besuchsreihenfolge vertauscht werden – hervorgehoben sind die beiden getauschten Städte.",
+        "Die Fitnessfunktion berechnet für alle sechs Individuen die Länge ihrer Rundreise – eine kürzere Strecke bedeutet eine bessere Fitness.",
+        "Die Umweltselektion behält die vier besten Individuen aus Eltern- und Kinderpopulation für die nächste Generation – die beiden schwächsten Rundreisen scheiden aus.",
+        "Damit ist eine Generation abgeschlossen. Der Zyklus aus Elternselektion, Rekombination, Mutation, Bewertung und Umweltselektion wiederholt sich, bis ein Abbruchkriterium erreicht ist – etwa eine feste Anzahl an Generationen oder eine ausreichend gute Lösung."
+      ];
+
+      function render(step) {
+        var alleOrders = { p1: P1, p2: P2, p3: P3, p4: P4, c1: C1, c2: C2 };
+        var laengen = {};
+        Object.keys(alleOrders).forEach(function (k) { laengen[k] = tourLength(alleOrders[k]); });
+
+        if (step === 0) {
+          setSlot("p1", P1, {});
+          setSlot("p2", P2, {});
+          setSlot("p3", P3, {});
+          setSlot("p4", P4, {});
+          setSlot("c1", C1, { versteckt: true });
+          setSlot("c2", C2, { versteckt: true });
+        } else if (step === 1) {
+          setSlot("p1", P1, {});
+          setSlot("p2", P2, { hervorgehoben: true });
+          setSlot("p3", P3, {});
+          setSlot("p4", P4, { hervorgehoben: true });
+          setSlot("c1", C1, { versteckt: true });
+          setSlot("c2", C2, { versteckt: true });
+        } else if (step === 2) {
+          setSlot("p1", P1, {});
+          setSlot("p2", P2, { hervorgehoben: true });
+          setSlot("p3", P3, {});
+          setSlot("p4", P4, { hervorgehoben: true });
+          setSlot("c1", P2, { hervorgehoben: true });
+          setSlot("c2", P4, { hervorgehoben: true });
+        } else if (step === 3) {
+          setSlot("p1", P1, {});
+          setSlot("p2", P2, {});
+          setSlot("p3", P3, {});
+          setSlot("p4", P4, {});
+          setSlot("c1", C1, { hervorgehoben: true, hervorgehobeneStaedte: [C1[2], C1[4]] });
+          setSlot("c2", C2, { hervorgehoben: true, hervorgehobeneStaedte: [C2[2], C2[4]] });
+        } else if (step === 4) {
+          Object.keys(alleOrders).forEach(function (k) {
+            setSlot(k, alleOrders[k], { zeigeLaenge: true });
+          });
+        } else if (step >= 5) {
+          var sortiert = Object.keys(alleOrders).slice().sort(function (a, b) { return laengen[a] - laengen[b]; });
+          var behalten = sortiert.slice(0, 4);
+          Object.keys(alleOrders).forEach(function (k) {
+            var ueberlebt = behalten.indexOf(k) !== -1;
+            setSlot(k, alleOrders[k], { zeigeLaenge: true, ueberlebt: ueberlebt, verworfen: !ueberlebt });
+          });
+        }
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        drawLegende();
+        buildSlots();
+
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

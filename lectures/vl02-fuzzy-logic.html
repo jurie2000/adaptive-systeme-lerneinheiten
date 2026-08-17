@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 02 – Fuzzy Logic · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .fz-charts { display: flex; flex-wrap: wrap; gap: var(--as-abstand-m); margin-bottom: var(--as-abstand-m); }
+    .fz-chart { flex: 1 1 300px; }
+    .fz-chart svg { width: 100%; max-width: 360px; height: 150px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .fz-chart__titel { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3em; }
+    .fz-kurve { fill: none; stroke: var(--as-rahmen-stark, var(--as-text-gedaempft)); stroke-width: 1.1; opacity: 0.55; }
+    .fz-kurve--marker { fill: none; stroke: var(--as-begriff); stroke-width: 1.3; opacity: 0.9; }
+    .fz-flaeche { fill: var(--as-akzent); opacity: 0.35; stroke: var(--as-akzent); stroke-width: 1; }
+    .fz-eingabe-linie { stroke: var(--as-ablauf); stroke-width: 1.2; stroke-dasharray: 3 2; }
+    .fz-text { font-size: 7px; fill: var(--as-text-gedaempft); }
+    .fz-centroid { fill: var(--as-akzent); }
+    .fz-legende { font-size: 0.75rem; color: var(--as-text-gedaempft); margin: 0.3em 0 0; }
+
+    .fz-regeln { overflow-x: auto; }
+    table.fz-regeln-tabelle { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    table.fz-regeln-tabelle th, table.fz-regeln-tabelle td { border: 1px solid var(--as-rahmen); padding: 0.4em 0.6em; text-align: left; }
+    table.fz-regeln-tabelle th { background: var(--as-flaeche-erhoeht); color: var(--as-ablauf); }
+    table.fz-regeln-tabelle tr[data-aktiv="true"] td { font-weight: 600; color: var(--as-akzent); }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 02 – Fuzzy Logic</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Fuzzy Logic erlaubt es, mit unscharfen, sprachlich formulierten Aussagen wie
+        „warm" oder „ziemlich nass" zu rechnen, statt alles in scharfe Ja/Nein-Kategorien
+        zu zwingen. Ein Fuzzy-Inferenzsystem übersetzt eine scharfe Eingabe in
+        Zugehörigkeitsgrade zu solchen sprachlichen Begriffen, wertet darauf
+        WENN-DANN-Regeln aus und wandelt das unscharfe Ergebnis am Ende wieder in eine
+        scharfe Ausgabe um. Man nutzt es vor allem für Steuerungsprobleme, bei denen sich
+        Expertenwissen leicht in sprachlichen Regeln formulieren lässt, aber ein exaktes
+        mathematisches Modell fehlt oder unnötig aufwendig wäre.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Zugehörigkeitsfunktion μ</dt><dd>Ordnet jedem Wert einer Grundmenge einen Zugehörigkeitsgrad zwischen 0 und 1 zu.</dd></div>
+        <div><dt>Fuzzy-Menge</dt><dd>Menge von Paaren aus Wert und zugehörigem Zugehörigkeitsgrad.</dd></div>
+        <div><dt>Linguistische Variable</dt><dd>Eine Größe, z. B. Temperatur, die mehrere sprachliche Ausprägungen annehmen kann.</dd></div>
+        <div><dt>Linguistischer Term</dt><dd>Eine sprachliche Ausprägung einer linguistischen Variable, z. B. „warm" oder „kalt".</dd></div>
+        <div><dt>t-Norm</dt><dd>Die Fuzzy-Entsprechung des logischen UND, üblicherweise das Minimum.</dd></div>
+        <div><dt>s-Norm</dt><dd>Die Fuzzy-Entsprechung des logischen ODER, üblicherweise das Maximum.</dd></div>
+        <div><dt>Fuzzifizierung</dt><dd>Berechnung der Zugehörigkeitsgrade einer scharfen Eingabe zu den linguistischen Termen einer Regel.</dd></div>
+        <div><dt>Regelbasis</dt><dd>Die Menge aller WENN-DANN-Regeln eines Fuzzy-Inferenzsystems.</dd></div>
+        <div><dt>Prämisse / Folgerung</dt><dd>Der WENN-Teil bzw. der DANN-Teil einer Regel.</dd></div>
+        <div><dt>Implikation (Mamdani)</dt><dd>Schneidet die Zugehörigkeitsfunktion der Folgerung auf Höhe des Prämissenwerts ab.</dd></div>
+        <div><dt>Aggregation</dt><dd>Zusammenfassung der beschnittenen Folgerungs-Funktionen aller Regeln, meist über das Maximum.</dd></div>
+        <div><dt>Defuzzifizierung</dt><dd>Berechnung eines scharfen Ausgabewerts aus der aggregierten Fuzzy-Menge, meist über den Schwerpunkt.</dd></div>
+        <div><dt>Mamdani-/Sugeno-Typ</dt><dd>Fuzzy-Inferenzsysteme mit unscharfem (Mamdani) bzw. scharfem (Sugeno) Ergebnis je Regel.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Fuzzifizierer</dt><dd>Berechnet für eine scharfe Eingabe die Zugehörigkeitsgrade zu allen relevanten linguistischen Termen.</dd></div>
+        <div class="bestandteil"><dt>Regelbasis</dt><dd>Enthält alle WENN-DANN-Regeln sowie die Definitionen der Zugehörigkeitsfunktionen.</dd></div>
+        <div class="bestandteil"><dt>Inferenz</dt><dd>Kombiniert die Zugehörigkeitsgrade einer Regel per t-/s-Norm zu einem Prämissenwert und schneidet damit die Zugehörigkeitsfunktion der Folgerung ab (Implikation).</dd></div>
+        <div class="bestandteil"><dt>Aggregation</dt><dd>Fasst die beschnittenen Folgerungen aller Regeln zu einer gemeinsamen Fuzzy-Menge zusammen.</dd></div>
+        <div class="bestandteil"><dt>Defuzzifizierer</dt><dd>Berechnet aus dieser Fuzzy-Menge einen scharfen Ausgabewert, meist über den Schwerpunkt.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+      <ol class="ablauf-liste">
+        <li>Für jede scharfe Eingabe werden die Zugehörigkeitsgrade zu den relevanten linguistischen Termen berechnet (Fuzzifizierung).</li>
+        <li>Für jede Regel werden die Zugehörigkeitsgrade ihrer Prämisse über Konjunktions- (Minimum) oder Disjunktionsoperatoren (Maximum) zu einem einzigen Prämissenwert kombiniert.</li>
+        <li>Dieser Prämissenwert wird auf die Zugehörigkeitsfunktion der Folgerung angewendet, indem sie auf seiner Höhe abgeschnitten wird (Implikation).</li>
+        <li>Die beschnittenen Folgerungen aller Regeln werden zu einer gemeinsamen Fuzzy-Menge zusammengefasst, meist über das Maximum (Aggregation).</li>
+        <li>Aus dieser Fuzzy-Menge wird ein scharfer Ausgabewert bestimmt, meist über den Schwerpunkt der Fläche (Defuzzifizierung).</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Fuzzifizierung → Regelauswertung → Defuzzifizierung</h2>
+      <p>
+        Die Animation nutzt dieselben vier Zugehörigkeitsfunktionen und dieselben vier
+        Regeln wie das Schwimmbad-Beispiel aus Übung 2 – hier allerdings mit
+        T = 24&nbsp;°C und T<sub>S</sub> = 28&nbsp;°C, bewusst andere Werte als in der
+        eigentlichen Übungsaufgabe (T = 26&nbsp;°C), damit Sie diese weiterhin selbst
+        nachrechnen können.
+      </p>
+
+      <div class="fz-charts">
+        <div class="fz-chart">
+          <div class="fz-chart__titel">Wassertemperatur T / Solltemperatur T<sub>S</sub></div>
+          <svg id="fz-eingabe-svg" viewBox="0 0 240 120"></svg>
+        </div>
+        <div class="fz-chart">
+          <div class="fz-chart__titel">Temperaturänderung ΔT</div>
+          <svg id="fz-ausgabe-svg" viewBox="0 0 240 120"></svg>
+        </div>
+      </div>
+
+      <div class="fz-regeln">
+        <table class="fz-regeln-tabelle" id="fz-regeln-tabelle"></table>
+      </div>
+      <p class="fz-legende" id="fz-ergebnis"></p>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Nach der Einarbeitung in das
+        Python-Modul <code>skfuzzy</code> (Aufgabe 2.1) sollte für das
+        Schwimmbad-Beispiel aus Aufgabe 2.2 ein Fuzzy-Inferenzsystem mit den
+        Zugehörigkeitsfunktionen kalt/lauwarm/warm/heiß für Wasser- und Solltemperatur
+        sowie negativ/null/positiv für die Temperaturänderung umgesetzt werden, samt der
+        vier vorgegebenen Regeln. Gefragt war unter anderem die resultierende
+        Temperaturänderung für T = 26&nbsp;°C und T<sub>S</sub> = 28&nbsp;°C – diese
+        Rechnung nimmt Ihnen dieses Modul bewusst nicht ab. Die Zusatzaufgabe 2.3 verlangt
+        ein eigenes Fuzzy-Inferenzsystem mit mindestens sechs Eingabe- und fünf
+        Ausgabevariablen zur Empfehlung von Programmiersprachen.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Die Animation in Abschnitt 5 zeigt
+        genau denselben Mechanismus – Fuzzifizierung, Prämissenauswertung, Implikation,
+        Aggregation, Defuzzifizierung –, den Sie für Aufgabe 2.2 in <code>skfuzzy</code>
+        nachbauen. Mit den dort verwendeten Eingabewerten sollte Ihre Implementierung zum
+        selben Rechenweg führen wie die Animation.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Aufgabe 2.3 macht praktisch
+        erfahrbar, warum sich überlappende Terme lohnen und warum ein Fuzzy-UND über
+        viele Variablen den Prämissenwert schnell klein werden lässt: Nach der
+        Minimum-Regel genügt eine einzige schwach erfüllte Bedingung, um die gesamte
+        Regel schwach zu machen – deshalb empfiehlt die Aufgabenstellung ausdrücklich
+        auch Regeln, die nicht alle Variablen nutzen.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        Fuzzy Logic steht im Kurs für sich – anders als die evolutionären und
+        schwarmbasierten Verfahren aus VL 03–06 gehört es nicht zum TSP-Strang und
+        basiert nicht auf dem EA-Grundzyklus. Inhaltlich ist es eine erste eigenständige
+        Antwort auf die Frage aus VL 01 (sobald verfügbar), wie ein System sein
+        Verhalten an eine Umgebung anpassen kann: Hier geschieht das nicht durch Lernen
+        oder Suche, sondern durch explizit formuliertes, aber unscharf ausgewertetes
+        Expertenwissen.
+      </p>
+      <p>
+        <strong>Scharfe vs. unscharfe Mengen:</strong> Der Übergang von der
+        charakteristischen Funktion einer klassischen Menge zur Zugehörigkeitsfunktion
+        einer Fuzzy-Menge (Abschnitt 2) ist die Grundlage, auf der alle weiteren
+        Vorlesungen zu regelbasierten und steuernden Verfahren im Kurs aufbauen.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einer Zugehörigkeitsfunktion?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Zugehörigkeitsfunktion μ ordnet jedem Element einer Grundmenge einen
+            Zugehörigkeitsgrad zwischen 0 und 1 zu, statt wie bei einer scharfen Menge
+            nur zwischen vollständiger Zugehörigkeit und Nicht-Zugehörigkeit zu
+            unterscheiden. Sie ist die unscharfe Verallgemeinerung der charakteristischen
+            Funktion einer klassischen Menge. Zugehörigkeitsfunktionen werden häufig
+            durch Dreiecks-, Trapez-, Gauß- oder Sigmoidfunktionen modelliert und in der
+            Fuzzy Logic subjektiv von Experten für ein konkretes Problem festgelegt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter der Defuzzifizierung, und was ist die gebräuchlichste Methode dafür?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Die Defuzzifizierung ist der letzte Schritt eines Fuzzy-Inferenzsystems,
+            in dem aus der aggregierten, unscharfen Ergebnismenge wieder ein einzelner,
+            scharfer Ausgabewert bestimmt wird – etwa eine konkrete Stellgröße für einen
+            Regler. Die gebräuchlichste Methode ist die Schwerpunktmethode (Centroid):
+            Sie berechnet den Schwerpunkt der Fläche unter der aggregierten
+            Zugehörigkeitsfunktion und verwendet dessen Lage auf der x-Achse als
+            scharfen Ausgabewert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einer linguistischen Variable?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine linguistische Variable ist eine Größe, die nicht nur einen einzelnen
+            Zahlenwert, sondern mehrere sprachliche Ausprägungen annehmen kann, zum
+            Beispiel die Variable Temperatur mit den Ausprägungen kalt, lauwarm, warm und
+            heiß. Diese Ausprägungen heißen linguistische Terme und werden jeweils durch
+            eine eigene Zugehörigkeitsfunktion beschrieben. Ein vollständiges
+            Fuzzy-System besteht meist aus mehreren linguistischen Variablen, die
+            gemeinsam in den Regeln der Regelbasis verwendet werden.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich eine Fuzzy-Menge von einer scharfen Menge?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei einer scharfen Menge ist jedes Element der Grundmenge entweder
+            vollständig zugehörig oder vollständig nicht zugehörig, dargestellt durch
+            eine charakteristische Funktion mit den Werten 0 oder 1. Bei einer
+            Fuzzy-Menge kann die Zugehörigkeit dagegen jeden Wert zwischen 0 und 1
+            annehmen, dargestellt durch eine Zugehörigkeitsfunktion. Eine scharfe Menge
+            lässt sich als Spezialfall einer Fuzzy-Menge auffassen, bei der nur die Werte
+            0 und 1 vorkommen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich der Mamdani-Typ vom Sugeno-Typ eines Fuzzy-Inferenzsystems?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Beim Mamdani-Typ ist auch das Ergebnis jeder einzelnen Regel eine
+            unscharfe Zugehörigkeitsfunktion, die erst am Ende über alle Regeln hinweg
+            aggregiert und defuzzifiziert wird – das im Modul gezeigte Beispiel folgt
+            diesem Prinzip. Beim Sugeno-Typ liefert die Folgerung einer Regel dagegen
+            direkt einen scharfen Wert oder eine Funktion der Eingaben, wodurch sich die
+            Ausgabe oft einfacher und schneller berechnen lässt, allerdings auf Kosten
+            der anschaulichen, sprachlich formulierten Folgerung.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich eine Zugehörigkeitsfunktion von einer Wahrscheinlichkeit, obwohl beide Werte zwischen 0 und 1 liefern?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Wahrscheinlichkeit wird in der Wahrscheinlichkeitsrechnung objektiv
+            über die Häufigkeit von Ereignissen definiert. Eine Zugehörigkeitsfunktion
+            wird dagegen in der Fuzzy Logic subjektiv von einem Experten für ein
+            konkretes Problem festgelegt und beschreibt keine Eintrittswahrscheinlichkeit,
+            sondern den Grad, zu dem ein Wert zu einem sprachlichen Begriff passt. Man
+            kann zwar eine Wahrscheinlichkeit als Zugehörigkeitsfunktion verwenden, die
+            beiden Konzepte sind aber inhaltlich nicht dasselbe.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten eine Heizungssteuerung bauen, für die es viel Expertenwissen in Form von Faustregeln, aber kein exaktes mathematisches Modell gibt – würden Sie ein Fuzzy-Inferenzsystem einsetzen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ja, das ist laut Vorlesung genau der klassische Anwendungsfall für Fuzzy
+            Logic: Steuerungsprobleme, bei denen sich Wissen leicht in sprachlichen
+            WENN-DANN-Regeln formulieren lässt, für die aber kein exaktes,
+            differenzierbares Modell existiert. Ich würde die relevanten Größen als
+            linguistische Variablen mit überlappenden Termen modellieren, die
+            Faustregeln als Regelbasis übernehmen und für die Ausgabe eine
+            Schwerpunkt-Defuzzifizierung verwenden. Wichtig wäre nur zu prüfen, ob nicht
+            bereits ein einfacherer klassischer Regler ausreicht, da die Vorlesung
+            ausdrücklich davon abrät, Fuzzy Logic ohne Not einzusetzen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Beim Entwurf Ihrer Regelbasis stellen Sie fest, dass sich die Zugehörigkeitsfunktionen benachbarter Terme nicht überlappen – welches Problem erwarten Sie, und wie beheben Sie es?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ohne Überlappung entsteht zwischen zwei benachbarten Termen ein harter
+            Übergang, an dem die Zugehörigkeit abrupt von einem Term auf den nächsten
+            wechselt – genau das Verhalten einer scharfen Menge, das Fuzzy Logic
+            eigentlich vermeiden soll, und zusätzlich Bereiche, in denen kein Term
+            wirklich zutrifft. Ich würde die Zugehörigkeitsfunktionen so anpassen, dass
+            sich benachbarte Terme in ihren Flanken überschneiden, sodass für jeden
+            Eingabewert stets mindestens ein Term mit spürbarer Zugehörigkeit greift und
+            die Regelbasis sanft zwischen den Regeln wechselt.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Für eine Eingabe sind zwei Regeln gleichzeitig teilweise aktiv, deren Folgerungen sich auf denselben linguistischen Term beziehen – wie geht das Fuzzy-Inferenzsystem damit um?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Jede der beiden Regeln schneidet die Zugehörigkeitsfunktion des
+            gemeinsamen Folgerungs-Terms zunächst unabhängig auf Höhe ihres eigenen
+            Prämissenwerts ab. Bei der anschließenden Aggregation werden diese
+            beschnittenen Flächen desselben Terms über das Maximum zusammengeführt, sie
+            addieren sich also nicht auf, sondern die stärkere der beiden Regeln
+            dominiert an jeder Stelle. Erst danach fließt das Ergebnis gemeinsam mit den
+            beschnittenen Flächen anderer Terme in die Schwerpunktbildung der
+            Defuzzifizierung ein.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Zugehörigkeitsfunktion mit Wahrscheinlichkeit
+        verwechseln:</span> Die Zugehörigkeitsfunktion wird subjektiv von Experten
+        festgelegt, die Wahrscheinlichkeit objektiv über Häufigkeiten definiert.</li>
+        <li><span class="as-achtung">t-Norm und s-Norm vertauschen:</span> Die t-Norm
+        (meist Minimum) entspricht dem UND, die s-Norm (meist Maximum) dem ODER.</li>
+        <li><span class="as-achtung">Implikation und Aggregation verwechseln:</span> Die
+        Implikation beschneidet die Folgerung einer einzelnen Regel, die Aggregation
+        fasst die beschnittenen Folgerungen aller Regeln zusammen.</li>
+        <li><span class="as-achtung">Annehmen, Fuzzy Logic sei für jedes Problem
+        geeignet:</span> Laut Vorlesung ausdrücklich nicht einsetzen, wenn es einfachere
+        Lösungen gibt.</li>
+        <li><span class="as-achtung">Vergessen, dass sich Terme überlappen
+        müssen:</span> Nicht überlappende Terme erzeugen harte Übergänge – genau das,
+        was Fuzzy Logic vermeiden soll.</li>
+        <li><span class="as-achtung">Ein Fuzzy-Inferenzsystem für ein Black-Box-Modell
+        wie z. B. ein neuronales Netz halten:</span> Es braucht ausdrücklich
+        Expertenwissen für Regeln und Zugehörigkeitsfunktionen und ist damit kein
+        Black-Box-Modell.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      function trapez(x, a, b, c, d) {
+        if (x <= a || x >= d) return 0;
+        if (x < b) return (x - a) / (b - a);
+        if (x <= c) return 1;
+        return (d - x) / (d - c);
+      }
+
+      // ---------- Zugehörigkeitsfunktionen (eigenes, klar lesbares Beispiel) ----------
+
+      function kalt(x) { return trapez(x, -20, -10, 10, 20); }
+      function lau(x) { return trapez(x, 10, 20, 20, 30); }
+      function warm(x) { return trapez(x, 25, 35, 35, 45); }
+      function heiss(x) { return trapez(x, 40, 50, 80, 80); }
+
+      function negativ(y) { return trapez(y, -3, -3, -1.2, 0); }
+      function nullTerm(y) { return trapez(y, -1, 0, 0, 1); }
+      function positiv(y) { return trapez(y, 0, 1.2, 3, 3); }
+
+      var T = 24, TS = 28;
+
+      var EINGABE_X_MIN = 0, EINGABE_X_MAX = 60;
+      var AUSGABE_X_MIN = -2, AUSGABE_X_MAX = 2;
+
+      function xPx(x, xMin, xMax) { return 10 + (x - xMin) / (xMax - xMin) * 220; }
+      function yPx(y) { return 105 - y * 90; }
+
+      function zeichneKurve(svg, fn, xMin, xMax, klasse) {
+        var pts = [];
+        for (var x = xMin; x <= xMax; x += (xMax - xMin) / 60) {
+          pts.push(xPx(x, xMin, xMax) + "," + yPx(fn(x)));
+        }
+        svg.appendChild(svgEl("polyline", { points: pts.join(" "), class: klasse }));
+      }
+
+      function zeichneFlaeche(svg, fn, xMin, xMax) {
+        var pts = [xPx(xMin, xMin, xMax) + "," + yPx(0)];
+        for (var x = xMin; x <= xMax; x += (xMax - xMin) / 80) {
+          pts.push(xPx(x, xMin, xMax) + "," + yPx(fn(x)));
+        }
+        pts.push(xPx(xMax, xMin, xMax) + "," + yPx(0));
+        svg.appendChild(svgEl("polygon", { points: pts.join(" "), class: "fz-flaeche" }));
+      }
+
+      function baueBasisEingabe(svg) {
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        [kalt, lau, warm, heiss].forEach(function (fn) { zeichneKurve(svg, fn, EINGABE_X_MIN, EINGABE_X_MAX, "fz-kurve"); });
+      }
+
+      function baueBasisAusgabe(svg) {
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        [negativ, nullTerm, positiv].forEach(function (fn) { zeichneKurve(svg, fn, AUSGABE_X_MIN, AUSGABE_X_MAX, "fz-kurve"); });
+      }
+
+      var REGELN = [
+        { text: "WENN T=lauwarm UND Ts=lauwarm DANN ΔT=Null", muT: lau, muTs: lau, folge: nullTerm, name: "Null" },
+        { text: "WENN T=warm UND Ts=lauwarm DANN ΔT=negativ", muT: warm, muTs: lau, folge: negativ, name: "negativ" },
+        { text: "WENN T=lauwarm UND Ts=warm DANN ΔT=positiv", muT: lau, muTs: warm, folge: positiv, name: "positiv" },
+        { text: "WENN T=warm UND Ts=warm DANN ΔT=Null", muT: warm, muTs: warm, folge: nullTerm, name: "Null" }
+      ];
+
+      function praemissen() {
+        return REGELN.map(function (r) { return Math.min(r.muT(T), r.muTs(TS)); });
+      }
+
+      function aggregiertesY(y, praem) {
+        var max = 0;
+        REGELN.forEach(function (r, i) {
+          var v = Math.min(praem[i], r.folge(y));
+          if (v > max) max = v;
+        });
+        return max;
+      }
+
+      function schwerpunkt(praem) {
+        var num = 0, den = 0;
+        for (var y = AUSGABE_X_MIN; y <= AUSGABE_X_MAX; y += 0.02) {
+          var m = aggregiertesY(y, praem);
+          num += y * m;
+          den += m;
+        }
+        return den === 0 ? 0 : num / den;
+      }
+
+      function render(step) {
+        var eingabeSvg = document.getElementById("fz-eingabe-svg");
+        var ausgabeSvg = document.getElementById("fz-ausgabe-svg");
+        baueBasisEingabe(eingabeSvg);
+        baueBasisAusgabe(ausgabeSvg);
+
+        if (step >= 0) {
+          eingabeSvg.appendChild(svgEl("line", { x1: xPx(T, EINGABE_X_MIN, EINGABE_X_MAX), y1: yPx(0), x2: xPx(T, EINGABE_X_MIN, EINGABE_X_MAX), y2: yPx(1.05), class: "fz-eingabe-linie" }));
+          eingabeSvg.appendChild(svgEl("line", { x1: xPx(TS, EINGABE_X_MIN, EINGABE_X_MAX), y1: yPx(0), x2: xPx(TS, EINGABE_X_MIN, EINGABE_X_MAX), y2: yPx(1.05), class: "fz-eingabe-linie" }));
+          eingabeSvg.appendChild(svgEl("text", { x: xPx(T, EINGABE_X_MIN, EINGABE_X_MAX), y: 12, class: "fz-text" })).textContent = "T=" + T;
+          eingabeSvg.appendChild(svgEl("text", { x: xPx(TS, EINGABE_X_MIN, EINGABE_X_MAX), y: 22, class: "fz-text" })).textContent = "Ts=" + TS;
+        }
+
+        if (step >= 1) {
+          eingabeSvg.appendChild(svgEl("text", { x: 15, y: 100, class: "fz-text" })).textContent =
+            "μ_lau(T)=" + lau(T).toFixed(2) + " μ_warm(T)=" + warm(T).toFixed(2);
+          eingabeSvg.appendChild(svgEl("text", { x: 15, y: 110, class: "fz-text" })).textContent =
+            "μ_lau(Ts)=" + lau(TS).toFixed(2) + " μ_warm(Ts)=" + warm(TS).toFixed(2);
+        }
+
+        var praem = praemissen();
+
+        var tabelle = document.getElementById("fz-regeln-tabelle");
+        tabelle.innerHTML = "";
+        var kopf = document.createElement("tr");
+        ["Regel", "Prämisse (min)"].forEach(function (h) {
+          var th = document.createElement("th"); th.textContent = h; kopf.appendChild(th);
+        });
+        tabelle.appendChild(kopf);
+        if (step >= 2) {
+          REGELN.forEach(function (r, i) {
+            var row = document.createElement("tr");
+            if (praem[i] > 0) row.dataset.aktiv = "true";
+            var tdText = document.createElement("td"); tdText.textContent = r.text; row.appendChild(tdText);
+            var tdVal = document.createElement("td"); tdVal.textContent = praem[i].toFixed(2); row.appendChild(tdVal);
+            tabelle.appendChild(row);
+          });
+        }
+
+        if (step === 3) {
+          // Jede aktive Regel einzeln, unverbunden dargestellt - erst in Schritt 4
+          // werden sie zu einer einzigen Fläche zusammengefasst (Aggregation).
+          REGELN.forEach(function (r, i) {
+            if (praem[i] <= 0) return;
+            var beschnitten = function (y) { return Math.min(praem[i], r.folge(y)); };
+            zeichneFlaeche(ausgabeSvg, beschnitten, AUSGABE_X_MIN, AUSGABE_X_MAX);
+          });
+        } else if (step >= 4) {
+          zeichneFlaeche(ausgabeSvg, function (y) { return aggregiertesY(y, praem); }, AUSGABE_X_MIN, AUSGABE_X_MAX);
+        }
+
+        var ergebnisEl = document.getElementById("fz-ergebnis");
+        if (step >= 5) {
+          var sp = schwerpunkt(praem);
+          ausgabeSvg.appendChild(svgEl("circle", { cx: xPx(sp, AUSGABE_X_MIN, AUSGABE_X_MAX), cy: yPx(aggregiertesY(sp, praem)), r: 3.5, class: "fz-centroid" }));
+          ergebnisEl.textContent = "Defuzzifiziert (Schwerpunkt): ΔT ≈ " + sp.toFixed(2) + " (Beispielwerte, nicht die Übungsaufgabe)";
+        } else {
+          ergebnisEl.textContent = "";
+        }
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      var SCHRITTE = [
+        "Für das Schwimmbad-Beispiel aus Übung 2 gibt es vier Zugehörigkeitsfunktionen für die Wassertemperatur T und die Solltemperatur Ts: kalt, lauwarm, warm und heiß. Betrachtet werden hier T = 24 °C und Ts = 28 °C – andere Werte als in der eigentlichen Übungsaufgabe.",
+        "Die Fuzzifizierung berechnet für T und Ts die Zugehörigkeitsgrade zu den betroffenen Termen – T ist hier nur teilweise „lauwarm“, während Ts sowohl teilweise „lauwarm“ als auch teilweise „warm“ ist.",
+        "Für jede der vier Regeln aus Übung 2 wird die Prämisse ausgewertet: Das UND wird als Minimum der beiden Zugehörigkeitsgrade berechnet. Zwei Regeln sind hier teilweise aktiv (hervorgehoben).",
+        "Die aktiven Regeln schneiden ihre jeweilige Folgerung – die Zugehörigkeitsfunktion von „Null“ bzw. „positiv“ für die Temperaturänderung – auf Höhe ihres Prämissenwerts ab (Implikation).",
+        "Die beschnittenen Flächen aller Regeln werden zu einer gemeinsamen Fläche zusammengefasst – dem Maximum an jeder Stelle (Aggregation).",
+        "Der Schwerpunkt dieser Fläche liefert die scharfe Ausgabe: die empfohlene Temperaturänderung für dieses Beispiel."
+      ];
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

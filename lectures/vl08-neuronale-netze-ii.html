@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 08 – Neuronale Netze II · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .ea-teil { margin-bottom: var(--as-abstand-l); }
+    .ea-teil__titel { font-weight: 600; color: var(--as-ablauf); margin-bottom: var(--as-abstand-s); }
+
+    .mlp-svg { width: 100%; max-width: 340px; height: 150px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .mlp-knoten { fill: var(--as-flaeche); stroke: var(--as-begriff); stroke-width: 1.4; }
+    .mlp-kante { stroke: var(--as-text-gedaempft); stroke-width: 1; }
+    .mlp-kante--geaendert { stroke: var(--as-akzent); stroke-width: 2.2; }
+    .mlp-text { font-size: 7.5px; text-anchor: middle; fill: var(--as-text); }
+    .mlp-werte { margin-top: var(--as-abstand-s); font-size: 0.82rem; }
+    .mlp-werte div { margin-bottom: 0.2em; }
+    .mlp-werte .neu { color: var(--as-akzent); font-weight: 600; }
+
+    .cnn-gitter { display: inline-grid; grid-template-columns: repeat(3, 2.4rem); gap: 2px; vertical-align: middle; }
+    .cnn-zelle { width: 2.4rem; height: 2.4rem; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; border: 1px solid var(--as-rahmen); background: var(--as-flaeche-erhoeht); }
+    .cnn-zelle--kern { background: var(--as-akzent-gedeckt); border-color: var(--as-akzent); }
+    .cnn-row { display: flex; align-items: center; gap: var(--as-abstand-m); flex-wrap: wrap; margin-bottom: var(--as-abstand-m); }
+    .cnn-ergebnis { font-size: 1.1rem; font-weight: 700; color: var(--as-akzent); }
+    .cnn-gitter--2 { grid-template-columns: repeat(2, 2.4rem); }
+    .cnn-zelle--max { background: var(--as-ablauf); color: var(--as-akzent-kontrast); border-color: var(--as-ablauf); }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 08 – Neuronale Netze II</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Ein einzelnes Perzeptron kann nur linear separierbare Probleme lösen – ein
+        mehrschichtiges Netz (MLP) überwindet diese Grenze, indem es mehrere
+        Neuronenschichten hintereinanderschaltet und dadurch beliebig komplexe
+        Entscheidungsgrenzen aus mehreren Hyperebenen zusammensetzt. Damit ein solches
+        Netz lernen kann, muss der Fehler von der Ausgabeschicht rückwärts durch die
+        verdeckten Schichten propagiert werden (Backpropagation), da für verdeckte
+        Neuronen kein direkter Zielwert bekannt ist. Convolutional Neural Networks (CNNs)
+        erweitern dieses Prinzip um Faltungs- und Pooling-Schichten, die zunächst kleine,
+        ortsunabhängige Muster erkennen und diese schrittweise zu größeren
+        Bildmerkmalen zusammensetzen.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Mehrschichtperzeptron (MLP)</dt><dd>Neuronales Netz mit mindestens einer verdeckten Schicht zwischen Eingabe und Ausgabe.</dd></div>
+        <div><dt>Verdeckte Schicht</dt><dd>Jede Schicht eines Netzes, die weder Eingabe- noch Ausgabeschicht ist.</dd></div>
+        <div><dt>Feedforward-Netz</dt><dd>Ein Netz, dessen Verbindungen ausschließlich in Richtung der Ausgabeschicht zeigen.</dd></div>
+        <div><dt>Rekurrentes Netz</dt><dd>Ein Netz mit mindestens einer rückwärtsgerichteten Verbindung, geeignet für zeitliche Sequenzen.</dd></div>
+        <div><dt>Backpropagation</dt><dd>Verfahren, das den Ausgabefehler rückwärts durch die Schichten propagiert, um die Gewichte aller Schichten anzupassen.</dd></div>
+        <div><dt>Aktivierungsfunktion</dt><dd>Differenzierbare Funktion, z. B. Sigmoid, die die gewichtete Eingabesumme eines Neurons auf seine Ausgabe abbildet.</dd></div>
+        <div><dt>Vanishing-Gradient-Problem</dt><dd>Ableitungen werden in frühen Schichten so klein, dass diese kaum noch lernen.</dd></div>
+        <div><dt>Convolutional Neural Network (CNN)</dt><dd>Netzarchitektur mit Faltungs- und Pooling-Schichten, spezialisiert auf Bilddaten.</dd></div>
+        <div><dt>Faltungskern (Filter)</dt><dd>Kleine, trainierte Matrix, die auf ein Bild angewendet ein Merkmal hervorhebt.</dd></div>
+        <div><dt>Feature Map</dt><dd>Ergebnis einer Faltung – zeigt, wo im Bild ein bestimmtes Merkmal stark ausgeprägt ist.</dd></div>
+        <div><dt>Pooling (z. B. Max-Pooling)</dt><dd>Fasst benachbarte Werte einer Feature Map zusammen und macht das Ergebnis robuster gegenüber der genauen Position eines Merkmals.</dd></div>
+        <div><dt>Deep Learning</dt><dd>Neuronale Netze mit vielen verdeckten Schichten.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>MLP und Backpropagation</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Vorwärtsrechnung</dt><dd>Berechnet schichtweise die Ausgaben aller Neuronen bis zur Ausgabeschicht.</dd></div>
+        <div class="bestandteil"><dt>Fehlerberechnung</dt><dd>Vergleicht die tatsächliche mit der erwarteten Ausgabe, z. B. über den quadratischen Fehler.</dd></div>
+        <div class="bestandteil"><dt>Gewichtsanpassung der Ausgabeschicht</dt><dd>δⱼ = (o_tⱼ − oⱼ)·f'(sⱼ); Gewichtsänderung über Gradientenabstieg.</dd></div>
+        <div class="bestandteil"><dt>Rückpropagierung in verdeckte Schichten</dt><dd>δⱼ = Σₖ δₖ·w_jk·f'(sⱼ) – der Fehler wird gewichtet an die vorhergehende Schicht weitergegeben.</dd></div>
+      </dl>
+
+      <h3>Convolutional Neural Network</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Convolution (Faltung)</dt><dd>Wendet einen trainierbaren Filter auf lokale Bildausschnitte an und erzeugt eine Feature Map.</dd></div>
+        <div class="bestandteil"><dt>Pooling</dt><dd>Reduziert die Feature Map, meist durch den Maximalwert benachbarter Bereiche (Max-Pooling).</dd></div>
+        <div class="bestandteil"><dt>Dense-Schichten</dt><dd>Kombinieren die extrahierten Merkmale am Ende des Netzes zu einer Vorhersage.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+
+      <h3>Vorwärtsrechnung und Backpropagation</h3>
+      <ol class="ablauf-liste">
+        <li>Für ein Trainingsmuster wird die Eingabe schichtweise vorwärts durch das Netz gerechnet, bis die Ausgabeschicht ihre Ausgabe berechnet hat.</li>
+        <li>Der Fehler zwischen erwarteter und tatsächlicher Ausgabe wird bestimmt.</li>
+        <li>Für die Ausgabeschicht wird direkt aus diesem Fehler ein δ-Wert je Neuron berechnet und die zugehörigen Gewichte per Gradientenabstieg angepasst.</li>
+        <li>Für jede vorhergehende, verdeckte Schicht wird der Fehler aus den δ-Werten der nachfolgenden Schicht zurückpropagiert und daraus wiederum ein δ-Wert und eine Gewichtsanpassung berechnet.</li>
+        <li>Dieser Rückwärtsschritt wiederholt sich bis zur ersten Schicht; danach beginnt die nächste Vorwärtsrechnung mit den aktualisierten Gewichten.</li>
+        <li>Der gesamte Zyklus wird für viele Trainingsmuster wiederholt, bis der Fehler ausreichend klein ist oder ein Abbruchkriterium erreicht ist.</li>
+      </ol>
+
+      <h3>Convolutional Neural Network</h3>
+      <ol class="ablauf-liste">
+        <li>Das Eingabebild wird als Zahlenmatrix (Farbwerte je Pixel) an das Netz übergeben.</li>
+        <li>Eine Convolution-Schicht führt mehrere Faltungen parallel durch und erzeugt so mehrere Feature Maps.</li>
+        <li>Eine Aktivierungsfunktion konzentriert das Ergebnis auf stark ausgeprägte Merkmale.</li>
+        <li>Eine Pooling-Schicht fasst benachbarte Werte zusammen und macht die Feature Map kleiner und robuster gegenüber der genauen Position eines Merkmals.</li>
+        <li>Mehrere solcher Convolution-Pooling-Blöcke hintereinander erkennen zunehmend komplexere Muster; abschließende Dense-Schichten kombinieren die Merkmale zu einer Vorhersage.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Vorwärts, rückwärts, gefaltet</h2>
+      <p>
+        Teil A zeigt Vorwärtsrechnung und Backpropagation an einem minimalen Netz (zwei
+        Eingaben, ein verdecktes Neuron, ein Ausgabeneuron). Teil B zeigt Faltung und
+        Max-Pooling an den exakten Zahlenbeispielen der Vorlesung.
+      </p>
+
+      <div class="ea-teil" id="teil-mlp">
+        <div class="ea-teil__titel">Teil A – Vorwärtsrechnung und Backpropagation</div>
+        <svg class="mlp-svg" id="mlp-svg" viewBox="0 0 200 110"></svg>
+        <div class="mlp-werte" id="mlp-werte"></div>
+      </div>
+
+      <div class="ea-teil" id="teil-cnn">
+        <div class="ea-teil__titel">Teil B – Faltung und Pooling</div>
+        <div id="cnn-container"></div>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Mit PyTorch ein vortrainiertes CNN laden, ein
+        Bild klassifizieren und die Ausgabe in eine lesbare Kategorie statt reiner
+        Zahlen übersetzen. Die Klassifikationsgenauigkeit mit verschiedenen Bildern und
+        Netzen testen und untersuchen, wie das Netz auf Bilder reagiert, deren Objekte
+        in keiner gelernten Klasse vorkommen. Die Zusatzaufgabe 8.2 wiederholt dieselbe
+        Untersuchung mit Objektdetektionsmodellen, die zusätzlich die Position eines
+        Objekts im Bild bestimmen.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Die Animation in Teil B zeigt genau
+        den Mechanismus – Faltung und Pooling –, der in den vortrainierten Modellen der
+        Übung bereits steckt. Die Übung nutzt diese Modelle als fertiges Werkzeug, ohne
+        sie selbst zu trainieren; das Modul erklärt, was dabei „unter der Haube"
+        passiert.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Bei Aufgabe 8.1, Punkt 4
+        (unbekannte Objekte) hilft das Verständnis aus Abschnitt 3: Ein CNN erkennt
+        letztlich nur gelernte statistische Muster und wählt bei unbekannten Eingaben
+        die wahrscheinlichste bekannte Kategorie – hohe Konfidenz bedeutet nicht
+        zwangsläufig, dass die Kategorie inhaltlich richtig ist.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        Setzt VL 07 direkt fort: Die dort gezeigte Grenze eines einzelnen Perzeptrons bei
+        nicht linear separierbaren Problemen wie XOR motiviert die hier eingeführten
+        mehrschichtigen Netze. Beide Module bilden gemeinsam den
+        „Neuronale-Netze-Strang" des Kurses (VL 07–08).
+      </p>
+      <p>
+        <strong>VL 09 – Machine Learning I</strong> wechselt danach von überwachtem
+        Lernen (bekannter Zielwert je Trainingsmuster) zu unüberwachtem Lernen
+        (Wettbewerbslernen) – ein guter Anlass, im Prüfungsgespräch den Unterschied
+        zwischen beiden Lernparadigmen klar zu benennen.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Backpropagation?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Backpropagation ist das Verfahren, mit dem ein mehrschichtiges Netz
+            lernt: Zunächst wird für die Ausgabeschicht direkt aus dem Fehler zwischen
+            erwarteter und tatsächlicher Ausgabe eine Gewichtsanpassung berechnet.
+            Danach wird dieser Fehler rückwärts in die vorhergehende Schicht
+            propagiert, wo er wiederum – gewichtet über die Verbindungsgewichte – zur
+            Anpassung der dortigen Gewichte genutzt wird. Das wiederholt sich bis zur
+            ersten Schicht und ist notwendig, weil für verdeckte Schichten kein
+            direkter Zielwert bekannt ist.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter dem Vanishing-Gradient-Problem?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das Vanishing-Gradient-Problem beschreibt, dass die bei der
+            Backpropagation berechneten δ-Werte auf ihrem Weg durch viele Schichten
+            immer kleiner werden können, weil sie sich als Produkt mehrerer
+            Ableitungswerte der Aktivierungsfunktion ergeben, die oft deutlich kleiner
+            als 1 sind. Dadurch lernen frühe, eingabenahe Schichten in tiefen Netzen
+            kaum noch, während spätere Schichten weiterhin deutliche
+            Gewichtsänderungen erfahren. Das Problem verschärft sich mit der Anzahl der
+            verdeckten Schichten und ist einer der Gründe, warum sehr tiefe Netze
+            besondere Techniken zum Training benötigen.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Pooling, und wozu dient es in einem CNN?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Pooling fasst benachbarte Werte einer Feature Map zu einem einzigen Wert
+            zusammen, beim gebräuchlichen Max-Pooling durch die Übernahme des größten
+            Werts in einem Fenster, zum Beispiel 2×2 Pixel. Dadurch wird die Feature
+            Map kleiner, was Rechenaufwand spart, und das Ergebnis wird robuster
+            gegenüber der genauen Position eines Merkmals im Bild – ein leicht
+            verschobenes Muster erzeugt nach dem Pooling noch immer dasselbe Ergebnis.
+            Für viele Anwendungen kommt es ohnehin nur auf die grobe, nicht die exakte
+            Position eines Merkmals an.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich ein Feedforward-Netz von einem rekurrenten Netz?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei einem Feedforward-Netz zeigen alle Verbindungen ausschließlich in
+            Richtung der Ausgabeschicht, es gibt also keinen Weg, auf dem ein Signal in
+            eine bereits durchlaufene Schicht zurückkehrt. Ein rekurrentes Netz besitzt
+            dagegen mindestens eine rückwärtsgerichtete Verbindung, wodurch ein Neuron
+            auch von seiner eigenen früheren Aktivität oder der einer späteren Schicht
+            beeinflusst werden kann. Das macht rekurrente Netze besonders geeignet für
+            zeitliche Sequenzen, etwa Handschrift- oder Spracherkennung, während
+            Backpropagation im klassischen Sinn nur für Feedforward-Netze geeignet ist.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich die Gewichtsanpassung der Ausgabeschicht von der einer verdeckten Schicht bei der Backpropagation?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Für die Ausgabeschicht lässt sich der δ-Wert direkt aus der Differenz
+            zwischen erwarteter und tatsächlicher Ausgabe berechnen, da hier ein
+            bekannter Zielwert vorliegt. Für eine verdeckte Schicht gibt es diesen
+            Zielwert nicht – ihr δ-Wert wird stattdessen aus den bereits berechneten
+            δ-Werten der nachfolgenden Schicht bestimmt, gewichtet mit den Verbindungen
+            zwischen beiden Schichten. Die Gewichtsanpassungsformel selbst ist danach in
+            beiden Fällen strukturell identisch, nur die Herkunft des δ-Werts
+            unterscheidet sich.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich Convolution- und Dense-Schichten in einem CNN?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Eine Convolution-Schicht wendet einen kleinen, lokalen Filter auf
+            Ausschnitte des gesamten Bildes an und teilt dabei dieselben Gewichte über
+            das ganze Bild hinweg – sie erkennt so ortsunabhängig lokale Muster wie
+            Kanten oder Formen. Eine Dense-Schicht verbindet dagegen jedes Neuron mit
+            allen Ausgaben der vorherigen Schicht, ohne diese Gewichtsteilung, und
+            kombiniert die zuvor extrahierten Merkmale zu einer globalen Vorhersage.
+            In einem CNN wie AlexNet stehen deshalb typischerweise mehrere
+            Convolution-Pooling-Blöcke am Anfang und Dense-Schichten am Ende.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie trainieren ein tiefes Netz, und die ersten Schichten scheinen sich kaum noch zu verändern – woran könnte das liegen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das ist ein typisches Anzeichen für das Vanishing-Gradient-Problem: Die
+            δ-Werte werden auf dem Weg durch viele Schichten immer kleiner, sodass die
+            Gewichtsänderungen in den eingabenahen Schichten fast verschwinden. Ich
+            würde zunächst prüfen, ob eine andere Aktivierungsfunktion mit größeren
+            Ableitungswerten in Frage kommt, und die Anzahl der verdeckten Schichten
+            und Neuronen je Schicht kritisch hinterfragen – laut Vorlesung ist das eine
+            der offenen Herausforderungen der Backpropagation.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie möchten handgeschriebene Ziffern klassifizieren, deren genaue Position im Bild leicht variiert – warum eignet sich ein CNN dafür besonders gut?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein CNN erkennt Muster zunächst lokal und ortsunabhängig über den
+            geteilten Faltungskern, der über das gesamte Bild angewendet wird – eine
+            Ziffernform wird also unabhängig davon erkannt, an welcher Stelle im Bild
+            sie auftaucht. Die anschließenden Pooling-Schichten machen das Ergebnis
+            zusätzlich robuster gegenüber kleinen Positionsverschiebungen, da nur die
+            grobe, nicht die exakte Position eines Merkmals in die nächste Schicht
+            übernommen wird. Genau diese Kombination macht CNNs für Bilderkennung mit
+            variabler Objektposition besonders geeignet.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihr CNN klassifiziert ein Bild eines völlig unbekannten Objekts trotzdem mit hoher Konfidenz einer bestimmten Kategorie zu – ist das ein Fehler des Netzes?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das ist kein Fehler im technischen Sinn, sondern eine erwartbare
+            Eigenschaft: Das Netz gibt immer die Kategorie aus, die zu den gelernten
+            Mustern am besten passt, auch wenn keine der gelernten Klassen inhaltlich
+            zutrifft. Die Konfidenz spiegelt dabei nur wider, wie eindeutig die
+            gelernten Muster im Bild wiedergefunden wurden, nicht ob das Objekt
+            tatsächlich zu einer bekannten Klasse gehört. Für die Praxis folgere ich
+            daraus, dass ein Schwellenwert oder eine gesonderte „unbekannt"-Behandlung
+            nötig ist, wenn das System auch mit unbekannten Objekten konfrontiert
+            werden kann.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Backpropagation mit dem Gradientenabstiegsverfahren
+        selbst gleichsetzen:</span> Backpropagation berechnet die δ-Werte schichtweise;
+        die eigentliche Gewichtsanpassung erfolgt per Gradientenabstieg auf Basis
+        dieser Werte.</li>
+        <li><span class="as-achtung">Annehmen, verdeckte Schichten hätten einen
+        bekannten Zielwert wie die Ausgabeschicht:</span> Genau das Fehlen eines
+        direkten Zielwerts für verdeckte Schichten ist der Grund, warum Backpropagation
+        überhaupt nötig ist.</li>
+        <li><span class="as-achtung">Die Schwellenwertfunktion als Aktivierungsfunktion
+        für Backpropagation verwenden wollen:</span> Sie ist nicht differenzierbar –
+        Backpropagation braucht eine differenzierbare Aktivierungsfunktion wie die
+        Sigmoid-Funktion.</li>
+        <li><span class="as-achtung">Faltungskern mit Pooling-Fenster
+        verwechseln:</span> Der Faltungskern enthält trainierte Gewichte, die ein
+        Merkmal hervorheben; das Pooling-Fenster fasst nur bereits berechnete Werte
+        zusammen, ohne eigene Gewichte.</li>
+        <li><span class="as-achtung">Glauben, ein CNN „sehe" wie ein Mensch:</span> Es
+        erkennt letztlich nur gelernte statistische Muster – bei unbekannten Objekten
+        liefert es trotzdem eine Kategorie, ohne dass das inhaltlich sinnvoll sein
+        muss.</li>
+        <li><span class="as-achtung">Mehrschichtperzeptron für dasselbe wie ein
+        Perzeptron mit anderem Namen halten:</span> Laut Vorlesung hat der
+        Wortbestandteil „-perzeptron" historisch nichts mit der eigentlichen Definition
+        eines Perzeptrons zu tun.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      // ---------- Teil A: MLP Vorwärts + Backpropagation ----------
+
+      function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+      function sigmoidAbl(x) { var e = Math.exp(-x); return e / Math.pow(1 + e, 2); }
+
+      var X1 = 1, X2 = 0, ZIEL = 1, ETA = 0.5;
+      var netz = { wh1: 0.5, wh2: -0.3, wo: 0.8 };
+
+      function vorwaerts(n) {
+        var sh = n.wh1 * X1 + n.wh2 * X2;
+        var yh = sigmoid(sh);
+        var so = n.wo * yh;
+        var yo = sigmoid(so);
+        return { sh: sh, yh: yh, so: so, yo: yo };
+      }
+
+      var POS = { x1: { x: 20, y: 25 }, x2: { x: 20, y: 85 }, h: { x: 100, y: 55 }, o: { x: 175, y: 55 } };
+
+      function drawMlp(step) {
+        var svg = document.getElementById("mlp-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var werteEl = document.getElementById("mlp-werte");
+        werteEl.innerHTML = "";
+
+        var vor = vorwaerts(netz);
+        var kantenGeaendert = step >= 3;
+
+        svg.appendChild(svgEl("line", { x1: POS.x1.x, y1: POS.x1.y, x2: POS.h.x, y2: POS.h.y, class: (kantenGeaendert && step >= 4) ? "mlp-kante--geaendert" : "mlp-kante" }));
+        svg.appendChild(svgEl("line", { x1: POS.x2.x, y1: POS.x2.y, x2: POS.h.x, y2: POS.h.y, class: "mlp-kante" }));
+        svg.appendChild(svgEl("line", { x1: POS.h.x, y1: POS.h.y, x2: POS.o.x, y2: POS.o.y, class: (step >= 3) ? "mlp-kante--geaendert" : "mlp-kante" }));
+
+        [["x1=" + X1, POS.x1], ["x2=" + X2, POS.x2], ["h", POS.h], ["o", POS.o]].forEach(function (paar) {
+          svg.appendChild(svgEl("circle", { cx: paar[1].x, cy: paar[1].y, r: 15, class: "mlp-knoten" }));
+          svg.appendChild(svgEl("text", { x: paar[1].x, y: paar[1].y + 3, class: "mlp-text" })).textContent = paar[0];
+        });
+
+        var zeilen = [];
+        zeilen.push("w<sub>h1</sub>=" + netz.wh1.toFixed(3) + "  w<sub>h2</sub>=" + netz.wh2.toFixed(3) + "  w<sub>o</sub>=" + netz.wo.toFixed(3));
+
+        if (step >= 1) zeilen.push("s<sub>h</sub>=" + vor.sh.toFixed(3) + "  y<sub>h</sub>=σ(s<sub>h</sub>)=" + vor.yh.toFixed(3));
+        if (step >= 2) {
+          zeilen.push("s<sub>o</sub>=" + vor.so.toFixed(3) + "  y<sub>o</sub>=σ(s<sub>o</sub>)=" + vor.yo.toFixed(3));
+          zeilen.push("Fehler E=(Ziel−y<sub>o</sub>)²=" + Math.pow(ZIEL - vor.yo, 2).toFixed(4));
+        }
+
+        var deltaO = (ZIEL - vor.yo) * sigmoidAbl(vor.so);
+        var dWo = ETA * vor.yh * deltaO;
+        if (step >= 3) {
+          zeilen.push("δ<sub>o</sub>=(Ziel−y<sub>o</sub>)·f'(s<sub>o</sub>)=" + deltaO.toFixed(4));
+          zeilen.push("<span class='neu'>w<sub>o</sub> neu = " + (netz.wo + dWo).toFixed(4) + "</span> (Δw<sub>o</sub>=" + dWo.toFixed(4) + ")");
+        }
+
+        var deltaH = deltaO * netz.wo * sigmoidAbl(vor.sh);
+        var dWh1 = ETA * X1 * deltaH;
+        var dWh2 = ETA * X2 * deltaH;
+        if (step >= 4) {
+          zeilen.push("δ<sub>h</sub>=δ<sub>o</sub>·w<sub>o</sub>·f'(s<sub>h</sub>)=" + deltaH.toFixed(4));
+          zeilen.push("<span class='neu'>w<sub>h1</sub> neu = " + (netz.wh1 + dWh1).toFixed(4) + ", w<sub>h2</sub> neu = " + (netz.wh2 + dWh2).toFixed(4) + "</span>");
+        }
+
+        if (step >= 5) {
+          var neuesNetz = { wh1: netz.wh1 + dWh1, wh2: netz.wh2 + dWh2, wo: netz.wo + dWo };
+          var neu = vorwaerts(neuesNetz);
+          zeilen.push("Neuer Vorwärtspass: y<sub>o</sub>=" + neu.yo.toFixed(4) + ", Fehler=" + Math.pow(ZIEL - neu.yo, 2).toFixed(4) + " (vorher " + Math.pow(ZIEL - vor.yo, 2).toFixed(4) + ")");
+        }
+
+        zeilen.forEach(function (z) {
+          var div = document.createElement("div");
+          div.innerHTML = z;
+          werteEl.appendChild(div);
+        });
+      }
+
+      // ---------- Teil B: Faltung + Pooling ----------
+
+      var KERN = [[1, 2, 1], [2, 4, 2], [1, 2, 1]];
+      var BILDAUSSCHNITT = [[0, 0, 0], [0, 0, 1], [0, 1, 1]];
+      var POOL_FENSTER = [0.1, 1.3, 0.9, 0];
+
+      function faltungsErgebnis() {
+        var summe = 0;
+        for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) summe += KERN[i][j] * BILDAUSSCHNITT[i][j];
+        return summe / 16;
+      }
+
+      function buildGitter(matrix, kernKlasse) {
+        var gitter = document.createElement("div");
+        gitter.className = "cnn-gitter";
+        matrix.forEach(function (row) {
+          row.forEach(function (v) {
+            var z = document.createElement("div");
+            z.className = "cnn-zelle" + (kernKlasse ? " cnn-zelle--kern" : "");
+            z.textContent = v;
+            gitter.appendChild(z);
+          });
+        });
+        return gitter;
+      }
+
+      function renderCnn(step) {
+        var container = document.getElementById("cnn-container");
+        container.innerHTML = "";
+        if (step < 0) return;
+
+        var faltungRow = document.createElement("div");
+        faltungRow.className = "cnn-row";
+        var label1 = document.createElement("div");
+        label1.innerHTML = "Kern (1/16)·";
+        faltungRow.appendChild(label1);
+        faltungRow.appendChild(buildGitter(KERN, true));
+        var mal = document.createElement("div"); mal.textContent = "*"; faltungRow.appendChild(mal);
+        faltungRow.appendChild(buildGitter(BILDAUSSCHNITT, false));
+        if (step >= 1) {
+          var pfeil = document.createElement("div"); pfeil.textContent = "="; faltungRow.appendChild(pfeil);
+          var ergebnis = document.createElement("div");
+          ergebnis.className = "cnn-ergebnis";
+          ergebnis.textContent = faltungsErgebnis().toFixed(4);
+          faltungRow.appendChild(ergebnis);
+        }
+        container.appendChild(faltungRow);
+
+        if (step >= 2) {
+          var poolRow = document.createElement("div");
+          poolRow.className = "cnn-row";
+          var poolLabel = document.createElement("div");
+          poolLabel.textContent = "Max-Pooling (2×2-Fenster):";
+          poolRow.appendChild(poolLabel);
+          var poolGitter = document.createElement("div");
+          poolGitter.className = "cnn-gitter cnn-gitter--2";
+          var maxWert = Math.max.apply(null, POOL_FENSTER);
+          POOL_FENSTER.forEach(function (v) {
+            var z = document.createElement("div");
+            z.className = "cnn-zelle" + (v === maxWert ? " cnn-zelle--max" : "");
+            z.textContent = v.toFixed(1);
+            poolGitter.appendChild(z);
+          });
+          poolRow.appendChild(poolGitter);
+          var pfeil2 = document.createElement("div"); pfeil2.textContent = "→"; poolRow.appendChild(pfeil2);
+          var poolErgebnis = document.createElement("div");
+          poolErgebnis.className = "cnn-ergebnis";
+          poolErgebnis.textContent = maxWert.toFixed(1);
+          poolRow.appendChild(poolErgebnis);
+          container.appendChild(poolRow);
+        }
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Ein minimales Netz mit zwei Eingaben, einem verdeckten Neuron h und einem Ausgabeneuron o. Eingabe hier: x₁=1, x₂=0, Ziel=1.",
+        "Vorwärtsrechnung, verdeckte Schicht: Die gewichtete Summe sₕ wird über die Sigmoid-Funktion in die Ausgabe yₕ des verdeckten Neurons umgewandelt.",
+        "Vorwärtsrechnung, Ausgabeschicht: Genauso wird aus yₕ die Netzausgabe y₀ berechnet und mit dem Ziel verglichen – der Fehler E ist noch deutlich größer als 0.",
+        "Backpropagation, Ausgabeschicht: Aus dem Fehler wird δ₀ berechnet und das Gewicht w₀ per Gradientenabstieg angepasst (hervorgehobene Kante).",
+        "Backpropagation, verdeckte Schicht: δ₀ wird über w₀ in die verdeckte Schicht zurückpropagiert, δₕ berechnet und die Gewichte wₕ₁, wₕ₂ angepasst.",
+        "Mit den aktualisierten Gewichten sinkt der Fehler bei einem erneuten Vorwärtspass – das Netz hat sich in Richtung des Ziels verbessert.",
+        "Für die Faltung wird ein 3×3-Bildausschnitt elementweise mit dem Faltungskern multipliziert und aufsummiert.",
+        "Das Ergebnis 0,3125 ist der Wert der Feature Map an dieser Stelle: Ein großer Wert bedeutet, dass das vom Kern gesuchte Merkmal hier stark ausgeprägt ist.",
+        "Max-Pooling fasst ein 2×2-Fenster der Feature Map zusammen, indem nur der größte Wert in die nächste Schicht übernommen wird – hier 1,3 von vier Werten."
+      ];
+
+      function render(step) {
+        drawMlp(Math.min(step, 5));
+        renderCnn(step >= 6 ? step - 6 : -1);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

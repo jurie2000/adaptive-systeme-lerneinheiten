@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 01 – Einführung · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    .hinweis-korrektur { background: var(--as-akzent-gedeckt); border: 1px solid var(--as-akzent); border-radius: var(--as-radius-m); padding: var(--as-abstand-s) var(--as-abstand-m); font-size: 0.82rem; margin-bottom: var(--as-abstand-l); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .stufen-row { display: flex; flex-wrap: wrap; gap: var(--as-abstand-s); margin-bottom: var(--as-abstand-m); }
+    .stufe-karte { flex: 1 1 150px; padding: var(--as-abstand-s); border: 2px solid var(--as-rahmen); border-radius: var(--as-radius-m); text-align: center; opacity: 0.4; transition: opacity var(--as-transition), border-color var(--as-transition); }
+    .stufe-karte[data-aktiv="true"] { opacity: 1; border-color: var(--as-akzent); }
+    .stufe-karte__titel { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.3em; }
+    .stufe-karte__beispiel { font-size: 0.78rem; color: var(--as-text-gedaempft); }
+
+    .landkarte-gruppe { border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-m); padding: var(--as-abstand-m); margin-bottom: var(--as-abstand-s); background: var(--as-flaeche-erhoeht); display: none; }
+    .landkarte-gruppe[data-sichtbar="true"] { display: block; }
+    .landkarte-gruppe__titel { font-weight: 600; color: var(--as-ablauf); margin-bottom: 0.5em; }
+    .landkarte-links { display: flex; flex-wrap: wrap; gap: var(--as-abstand-s); }
+    .landkarte-links a.as-button { text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 01 – Einführung</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <p class="hinweis-korrektur">
+      <strong>Hinweis:</strong> Ursprünglich war für dieses Modul ein
+      Wahrnehmung/Bewertung/Anpassung-Regelkreis vorgesehen. Die tatsächlichen Folien
+      zeigen keinen solchen Regelkreis, sondern eine dreistufige Taxonomie der
+      Anpassungsfähigkeit sowie eine Begriffslandkarte aus KI und Computational
+      Intelligence. Dieses Modul folgt dem tatsächlichen Folieninhalt (Details in
+      <code>design.md</code>, Abschnitt 2).
+    </p>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Adaptive Systeme passen ihr Verhalten an einen Kontext an, statt wie klassische
+        regelbasierte Systeme starr auf vorprogrammierte Fälle beschränkt zu bleiben.
+        Der Grad dieser Anpassungsfähigkeit reicht von kontext-adaptierbaren Systemen
+        (manuelle Umschaltung zwischen vordefinierten Profilen) über adaptive Systeme
+        (automatische Anpassung bei fester Funktionalität) bis zu selbst-adaptiven
+        Systemen, die sogar neue Funktionalität selbst entwickeln. Dieser Kurs deckt
+        dafür mehrere Lösungsfamilien ab – naturanaloge Verfahren, Fuzzy Logic und
+        maschinelles Lernen –, die sich alle in dieselbe Landkarte der Computational
+        Intelligence einordnen lassen.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Adaptives System</dt><dd>System, das sich automatisch an einen Kontext anpasst, dabei aber seine Funktionalität beibehält.</dd></div>
+        <div><dt>(Kontext-)adaptierbares System</dt><dd>System, das sich nur auf vordefinierte, manuell umschaltbare Kontexte einstellen lässt.</dd></div>
+        <div><dt>Selbst-adaptives System</dt><dd>System, das Kontexte selbstständig erkennt und dabei sogar seine eigene Funktionalität erweitert.</dd></div>
+        <div><dt>Kontext</dt><dd>Hinreichend genaue Charakterisierung der Situation eines Systems anhand relevanter, wahrnehmbarer Informationen.</dd></div>
+        <div><dt>Schwache KI</dt><dd>Ein Algorithmus gilt als intelligent, wenn er zur Problemlösung menschenähnliche Leistungen erbringt, z. B. Lernen oder Anpassung.</dd></div>
+        <div><dt>Starke KI</dt><dd>Die vollständige Nachbildung der menschlichen Kognition – existiert laut Vorlesung bisher nicht.</dd></div>
+        <div><dt>Computational Intelligence</dt><dd>Fehlertolerante, anpassungsfähige Verfahren, die auch bei unvollständigem Wissen Lösungen berechnen – nicht gleichzusetzen mit künstlicher Intelligenz.</dd></div>
+        <div><dt>Problemtypen</dt><dd>Klassifikation, Regression, Exploration, Optimierung und Steuerung – die fünf in der Vorlesung unterschiedenen Arten von Problemen.</dd></div>
+        <div><dt>Statisches / dynamisches Problem</dt><dd>Ein Problem, das nur einmal bzw. wiederholt unter veränderten Bedingungen gelöst werden muss.</dd></div>
+        <div><dt>Offline-, Echtzeit-, Online-Problem</dt><dd>Unterscheidung danach, wann eine Lösung vorliegen muss und ob alle Informationen bereits zu Beginn verfügbar sind.</dd></div>
+        <div><dt>NP-schwer / NP-vollständig</dt><dd>Problemklassen, für die kein Verfahren mit polynomieller Laufzeit bekannt ist bzw. auf die sich alle Probleme aus NP reduzieren lassen.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>Adaptivitätsstufen</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Kontext-adaptierbares System</dt><dd>Manuelle Anpassung an vordefinierte Kontexte, danach automatische Reaktion.</dd></div>
+        <div class="bestandteil"><dt>Adaptives System</dt><dd>Selbstständige Analyse des Kontexts und automatische Anpassung des Verhaltens, Funktionsumfang bleibt vorgegeben.</dd></div>
+        <div class="bestandteil"><dt>Selbst-adaptives System</dt><dd>Selbstständige Erkennung von Kontexten und Selbsterweiterung um neue Funktionalität.</dd></div>
+      </dl>
+
+      <h3>Problemtaxonomie</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Problemtyp</dt><dd>Klassifikation, Regression, Exploration, Optimierung oder Steuerung – beschreibt, WAS gelöst werden muss.</dd></div>
+        <div class="bestandteil"><dt>Problemklasse</dt><dd>Statisch, dynamisch oder Mischform – beschreibt, WIE OFT gelöst werden muss.</dd></div>
+        <div class="bestandteil"><dt>Zeitbetrachtung</dt><dd>Offline-, Echtzeit- oder Online-Problem – beschreibt, WANN eine Lösung vorliegen muss.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+
+      <h3>Ein System nach Adaptivität einordnen</h3>
+      <ol class="ablauf-liste">
+        <li>Prüfen, ob das System überhaupt auf unterschiedliche Situationen reagiert – falls nicht, ist es weder adaptierbar noch adaptiv.</li>
+        <li>Prüfen, ob die Anpassung manuell (durch Umschalten eines vordefinierten Profils) oder automatisch erfolgt – manuell bedeutet kontext-adaptierbar.</li>
+        <li>Bei automatischer Anpassung prüfen, ob dabei die Funktionalität des Systems gleich bleibt – dann ist es adaptiv.</li>
+        <li>Erweitert das System dabei sogar selbstständig seine eigene Funktionalität, ist es selbst-adaptiv – der höchste Grad an Autonomie in dieser Einordnung.</li>
+      </ol>
+
+      <h3>Ein Problem einordnen (vor der Verfahrenswahl)</h3>
+      <ol class="ablauf-liste">
+        <li>Den Problemtyp bestimmen: Soll eine Kategorie (Klassifikation), ein Zahlenwert (Regression), eine Lösung gesucht (Exploration), eine bestehende Lösung verbessert (Optimierung) oder ein System kontrolliert werden (Steuerung)?</li>
+        <li>Die Problemklasse bestimmen: Muss das Problem nur einmal (statisch) oder wiederholt unter veränderten Bedingungen (dynamisch) gelöst werden?</li>
+        <li>Die Zeitbetrachtung klären: Muss die Lösung irgendwann (offline), sofort bei Auftreten (Echtzeit) oder fortlaufend bei erst nach und nach eintreffenden Informationen (online) vorliegen?</li>
+        <li>Erst danach das passende Verfahren aus der Landkarte in Abschnitt 5 auswählen.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Adaptivitätsstufen und die Landkarte des Kurses</h2>
+      <p>
+        Teil A zeigt die drei Adaptivitätsstufen an den Beispielen aus der Vorlesung.
+        Teil B ist die Landkarte aller elf Module dieses Kurses – die Links führen direkt
+        zu den jeweiligen Modulen.
+      </p>
+
+      <div class="stufen-row" id="stufen-row"></div>
+
+      <div id="landkarte-container">
+        <div class="landkarte-gruppe" id="gruppe-tsp" data-sichtbar="false">
+          <div class="landkarte-gruppe__titel">Naturanaloge Verfahren – TSP-Strang</div>
+          <div class="landkarte-links">
+            <a class="as-button as-button--sekundaer" href="vl03-evolutionaere-algorithmen-i.html">VL 03 – EA I</a>
+            <a class="as-button as-button--sekundaer" href="vl04-evolutionaere-algorithmen-ii.html">VL 04 – EA II</a>
+            <a class="as-button as-button--sekundaer" href="vl05-evolutionaere-algorithmen-iii.html">VL 05 – EA III</a>
+            <a class="as-button as-button--sekundaer" href="vl06-schwarmintelligenz.html">VL 06 – Schwarmintelligenz</a>
+          </div>
+        </div>
+
+        <div class="landkarte-gruppe" id="gruppe-nn" data-sichtbar="false">
+          <div class="landkarte-gruppe__titel">Neuronale Netze</div>
+          <div class="landkarte-links">
+            <a class="as-button as-button--sekundaer" href="vl07-neuronale-netze-i.html">VL 07 – Neuronale Netze I</a>
+            <a class="as-button as-button--sekundaer" href="vl08-neuronale-netze-ii.html">VL 08 – Neuronale Netze II</a>
+          </div>
+        </div>
+
+        <div class="landkarte-gruppe" id="gruppe-fuzzy" data-sichtbar="false">
+          <div class="landkarte-gruppe__titel">Fuzzy Logic</div>
+          <div class="landkarte-links">
+            <a class="as-button as-button--sekundaer" href="vl02-fuzzy-logic.html">VL 02 – Fuzzy Logic</a>
+          </div>
+        </div>
+
+        <div class="landkarte-gruppe" id="gruppe-ml" data-sichtbar="false">
+          <div class="landkarte-gruppe__titel">Maschinelles Lernen – Zoo-Datensatz-Strang</div>
+          <div class="landkarte-links">
+            <a class="as-button as-button--sekundaer" href="vl09-machine-learning-i.html">VL 09 – Wettbewerbslernen</a>
+            <a class="as-button as-button--sekundaer" href="vl10-machine-learning-ii.html">VL 10 – k-NN / k-Means</a>
+            <a class="as-button as-button--sekundaer" href="vl11-machine-learning-iii.html">VL 11 – Entscheidungsbaum</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Eine grundlegende Datenstruktur für ein TSP
+        implementieren – Knoten mit eigenen Koordinaten, eine einfache grafische
+        Darstellung, saubere Trennung von Daten und Visualisierung, vollständige
+        Vernetzung mit implizit über die Koordinaten gegebenen Kantenlängen sowie ein
+        (zunächst statischer oder zufälliger) Pfad, der mitgezeichnet wird. Die
+        Zusatzaufgabe verlangt eine erste Pfadbestimmung – entweder per Brute-Force
+        (Tiefensuche durch alle Pfade) oder per Heuristik (jeweils den nächstgelegenen
+        noch unbesuchten Knoten wählen).
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Diese erste Übung legt die
+        Datenstruktur, die durch den gesamten TSP-Strang des Kurses wiederverwendet
+        wird – jedes der Module VL 03–06 baut auf genau dieser TSP-Repräsentation auf,
+        nur mit unterschiedlichen Lösungsverfahren.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Der hier eingeführte
+        Heuristik-Ansatz (nächstgelegener Knoten) ist bereits eine einfache Form dessen,
+        was später als Nearest Neighbour (VL 10) und in abgewandelter Form als
+        Ameisenkolonie-Optimierung (VL 06) wieder auftaucht – ein gutes Beispiel dafür,
+        wie sich ein einfaches Prinzip durch den gesamten Kurs zieht.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        Dieses Modul ist der Ausgangspunkt des TSP-Strangs: Übung 1 (dieses Modul) →
+        Übung 3 (VL 03) → Übung 4 (VL 04) → Übung 5 (VL 05) → Übung 6 (VL 06).
+      </p>
+      <p>
+        Die Landkarte in Abschnitt 5 verweist auf alle zehn übrigen Module des Kurses –
+        dieses Modul ist damit weniger eine Fortsetzung eines Strangs als deren
+        gemeinsamer Ausgangs- und Bezugspunkt.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einem adaptiven System im engeren, in der Vorlesung definierten Sinn?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein adaptives System analysiert seinen Anwendungskontext selbstständig
+            und passt sein Verhalten automatisch daran an, ohne dass ein Nutzer manuell
+            eingreifen muss. Anders als bei einem kontext-adaptierbaren System muss der
+            Kontext dabei nicht mehr eindeutig vordefiniert sein, er kann auch diffus
+            sein. Der Funktionsumfang des Systems bleibt dabei aber weiterhin klar
+            vorgegeben – das System erweitert seine Fähigkeiten nicht selbst, das wäre
+            die nächsthöhere Stufe, ein selbst-adaptives System.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Computational Intelligence, und wie unterscheidet sie sich von künstlicher Intelligenz?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Computational Intelligence bezeichnet Verfahren, die auch bei nicht
+            vollständigem Wissen – etwa unbekanntem Kontext – Lösungen berechnen
+            können, und die dabei fehlertolerant, anpassungsfähig und häufig gut
+            parallelisierbar sind. Sie überschneidet sich zwar mit künstlicher
+            Intelligenz, ist aber laut Vorlesung ausdrücklich nicht dasselbe – viele
+            Verfahren der Computational Intelligence, etwa naturanaloge Algorithmen,
+            werden nicht notwendigerweise als klassische KI-Verfahren eingeordnet.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter einem NP-vollständigen Problem?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein Problem ist NP-schwer, wenn es mindestens so schwer lösbar ist wie
+            alle Probleme der Klasse NP – der Klasse aller Probleme, die sich nicht
+            nachweislich in polynomieller Zeit lösen lassen. Ist ein NP-schweres
+            Problem zusätzlich selbst Teil von NP, heißt es NP-vollständig; alle
+            anderen Probleme aus NP lassen sich auf ein NP-vollständiges Problem
+            zurückführen. Ob P = NP gilt, also ob sich alle diese Probleme doch in
+            polynomieller Zeit exakt lösen lassen, ist eines der bekanntesten offenen
+            Probleme der Informatik.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheiden sich kontext-adaptierbare, adaptive und selbst-adaptive Systeme?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein kontext-adaptierbares System passt sich nur an vordefinierte
+            Kontexte an, die manuell umgeschaltet werden, etwa der Flugmodus eines
+            Smartphones. Ein adaptives System erkennt seinen Kontext selbstständig und
+            passt sein Verhalten automatisch an, ohne dass sich sein Funktionsumfang
+            ändert, etwa personalisierte Werbung. Ein selbst-adaptives System geht noch
+            weiter: Es erkennt Kontexte selbstständig und kann dabei sogar neue
+            Funktionalität entwickeln, wie es die Vorlesung am Beispiel des vollständig
+            autonomen Fahrens zeigt. Der Grad der Autonomie und Anpassungsfähigkeit
+            steigt in dieser Reihenfolge.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich ein Echtzeitproblem von einem Online-Problem?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei einem Echtzeitproblem muss eine Lösung zeitnah oder sofort nach dem
+            Auftreten des Problems gefunden werden, etwa bei der Steuerung des
+            Gebäudeklimas. Bei einem Online-Problem muss die Lösung ebenfalls zeitnah
+            vorliegen, doch der entscheidende Unterschied ist, dass die benötigten
+            Informationen erst nach und nach eintreffen, während das Verfahren bereits
+            läuft – wie beim autonomen Fahren, wo neue Sensordaten laufend
+            hinzukommen. Ein Problem kann also durchaus beide Eigenschaften gleichzeitig
+            haben.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich schwache von starker KI?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein Algorithmus gilt als schwache KI, wenn er zur Lösung eines Problems
+            menschenähnliche Leistungen erbringt, etwa Lernen, Anpassung oder
+            Schlussfolgerung, ohne dabei die menschliche Kognition tatsächlich
+            nachzubilden. Starke KI würde dagegen die menschliche Kognition
+            vollständig nachbilden. Laut Vorlesung existieren bisher ausschließlich
+            Verfahren der schwachen KI – alle im Kurs behandelten Verfahren, von
+            evolutionären Algorithmen bis zu neuronalen Netzen, fallen also in diese
+            Kategorie.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie entwerfen ein Smart-Home-System, das die Heizung je nach Tageszeit über vom Nutzer vorgegebene Profile umschaltet – welcher Adaptivitätsstufe entspricht das, und was müsste hinzukommen, damit es eine Stufe höher wäre?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das entspricht einem kontext-adaptierbaren System: Die Kontexte – die
+            Tageszeit-Profile – sind vordefiniert und werden letztlich nach einer festen
+            Regel umgeschaltet, ähnlich wie beim Flugmodus eines Smartphones. Um daraus
+            ein adaptives System zu machen, müsste das System den Kontext
+            selbstständig erkennen, statt sich auf starre, vordefinierte Zeitprofile zu
+            verlassen – etwa indem es aus dem tatsächlichen Nutzerverhalten lernt, wann
+            geheizt werden soll, ohne dass der Funktionsumfang „Heizung steuern" sich
+            dabei ändert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie sollen entscheiden, ob für ein Problem ein exaktes oder ein approximatives Lösungsverfahren infrage kommt – welche Eigenschaft des Problems prüfen Sie zuerst?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ich würde zuerst prüfen, in welcher Komplexitätsklasse das Problem
+            liegt, insbesondere ob es NP-schwer ist. Ist das der Fall, wächst die
+            Laufzeit exakter Verfahren mit der Problemgröße exponentiell, wie es die
+            Vorlesung am Beispiel des Handlungsreisendenproblems zeigt – schon bei
+            überschaubaren Problemgrößen wird ein exaktes Verfahren dann unpraktikabel.
+            In diesem Fall würde ich ein approximatives Verfahren mit polynomieller
+            Laufzeit bevorzugen, das eine nah an der optimalen liegende, aber nicht
+            zwingend exakte Lösung liefert.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie entwickeln ein System zur Steuerung eines Gebäudeklimas – wie würden Sie es nach Problemtyp, Problemklasse und Zeitbetrachtung einordnen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Nach Problemtyp ist das laut Vorlesung ein Steuerungsproblem, da ein
+            bestehendes System – die Klimaanlage – kontrolliert werden soll. Nach
+            Problemklasse ist es ein dynamisches Problem, da sich die passende
+            Einstellung mit wechselnden äußeren Bedingungen wiederholt ändert und immer
+            wieder neu bestimmt werden muss. Nach Zeitbetrachtung ist es ein
+            Echtzeitproblem, da auf Temperaturänderungen zeitnah reagiert werden muss,
+            damit ein angenehmes Klima erhalten bleibt.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">Adaptive Systeme mit künstlicher Intelligenz
+        gleichsetzen:</span> Computational Intelligence ist laut Vorlesung ausdrücklich
+        nicht dasselbe wie künstliche Intelligenz, auch wenn beide sich überschneiden.</li>
+        <li><span class="as-achtung">Kontext-adaptierbar und adaptiv
+        verwechseln:</span> Der Unterschied liegt darin, ob die Anpassung an den
+        Kontext manuell (adaptierbar) oder automatisch (adaptiv) erfolgt.</li>
+        <li><span class="as-achtung">Adaptiv und selbst-adaptiv verwechseln:</span> Bei
+        adaptiven Systemen bleibt die Funktionalität fest, bei selbst-adaptiven Systemen
+        wird sie selbstständig erweitert.</li>
+        <li><span class="as-achtung">Starke KI für bereits existierend halten:</span>
+        Laut Vorlesung existieren bisher keine als „starke KI" geltenden Verfahren.</li>
+        <li><span class="as-achtung">NP-schwer mit „gar nicht lösbar"
+        verwechseln:</span> NP-schwere Probleme sind lösbar, nur nicht nachweislich in
+        polynomieller Zeit exakt – approximative Lösungen mit polynomieller Laufzeit
+        sind oft möglich.</li>
+        <li><span class="as-achtung">Echtzeitproblem mit Online-Problem
+        verwechseln:</span> Bei Echtzeitproblemen muss sofort reagiert werden; bei
+        Online-Problemen treffen Informationen erst nach und nach ein, ohne dass
+        zwingend sofort reagiert werden muss.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var STUFEN = [
+        { id: "adaptierbar", titel: "Kontext-adaptierbar", beispiel: "Flugmodus: manuelles Umschalten eines vordefinierten Profils" },
+        { id: "adaptiv", titel: "Adaptiv", beispiel: "Shopping-Empfehlungen: automatische Anpassung, Funktionsumfang bleibt gleich" },
+        { id: "selbstadaptiv", titel: "Selbst-adaptiv", beispiel: "Autonomes Fahren: erkennt Kontexte und erweitert eigenständig sein Verhalten" }
+      ];
+
+      function buildStufenRow() {
+        var row = document.getElementById("stufen-row");
+        STUFEN.forEach(function (s) {
+          var karte = document.createElement("div");
+          karte.className = "stufe-karte";
+          karte.id = "stufe-" + s.id;
+          karte.dataset.aktiv = "false";
+          karte.innerHTML =
+            '<div class="stufe-karte__titel">' + s.titel + '</div>' +
+            '<div class="stufe-karte__beispiel">' + s.beispiel + '</div>';
+          row.appendChild(karte);
+        });
+      }
+
+      function setStufe(index) {
+        STUFEN.forEach(function (s, i) {
+          document.getElementById("stufe-" + s.id).dataset.aktiv = (i === index) ? "true" : "false";
+        });
+      }
+
+      var GRUPPEN = ["gruppe-tsp", "gruppe-nn", "gruppe-fuzzy", "gruppe-ml"];
+
+      function setLandkarte(anzahlSichtbar) {
+        GRUPPEN.forEach(function (id, i) {
+          document.getElementById(id).dataset.sichtbar = (i < anzahlSichtbar) ? "true" : "false";
+        });
+      }
+
+      var SCHRITTE = [
+        "Stufe 1 – kontext-adaptierbar: Der Flugmodus reagiert auf ein manuell umgeschaltetes, vordefiniertes Profil.",
+        "Stufe 2 – adaptiv: Shopping-Empfehlungen passen sich automatisch an das beobachtete Kaufverhalten an, der Funktionsumfang „Produkte empfehlen“ bleibt dabei unverändert.",
+        "Stufe 3 – selbst-adaptiv: Ein autonomes Fahrzeug erkennt Kontexte selbstständig und kann sein Verhalten – im Extremfall auch seine Fähigkeiten – eigenständig erweitern.",
+        "Die Landkarte des Kurses: Naturanaloge Verfahren am TSP-Strang – Evolutionäre Algorithmen (VL 03–05) und Schwarmintelligenz (VL 06).",
+        "Neuronale Netze (VL 07–08): vom MCP-Neuron über das Perzeptron bis zu mehrschichtigen Netzen und CNNs.",
+        "Fuzzy Logic (VL 02): regelbasierte Steuerung mit unscharfen, sprachlich formulierten Aussagen.",
+        "Maschinelles Lernen am Zoo-Datensatz-Strang (VL 09–11): Wettbewerbslernen, k-NN/k-Means und Entscheidungsbäume – die komplette Landkarte des Kurses ist jetzt sichtbar."
+      ];
+
+      function render(step) {
+        if (step <= 2) {
+          setStufe(step);
+        } else {
+          setStufe(-1);
+        }
+        setLandkarte(step >= 3 ? step - 2 : 0);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        buildStufenRow();
+
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

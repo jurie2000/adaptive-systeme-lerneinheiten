@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VL 10 – Machine Learning II · Adaptive Systeme</title>
+  <link rel="stylesheet" href="../assets/theme.css">
+  <style>
+    /* Modulspezifisches Layout - nutzt ausschließlich var(--as-*) aus theme.css. */
+    .modul-wrapper { max-width: 880px; margin: 0 auto; padding: var(--as-abstand-l) var(--as-abstand-m) var(--as-abstand-xl); }
+    .modul-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--as-abstand-s); padding: var(--as-abstand-m); border-bottom: 1px solid var(--as-rahmen); margin-bottom: var(--as-abstand-l); }
+    .modul-kopf__meta { color: var(--as-text-gedaempft); font-size: 0.85rem; margin: 0.2em 0 0; }
+    .quelle-link { font-size: 0.8rem; color: var(--as-text-gedaempft); }
+    .hinweis-korrektur { background: var(--as-akzent-gedeckt); border: 1px solid var(--as-akzent); border-radius: var(--as-radius-m); padding: var(--as-abstand-s) var(--as-abstand-m); font-size: 0.82rem; margin-bottom: var(--as-abstand-l); }
+    section { margin-bottom: var(--as-abstand-xl); }
+    section h2 { display: flex; align-items: baseline; gap: 0.5em; }
+    section h2 .modul-nr { color: var(--as-text-gedaempft); font-size: 0.8em; font-weight: 400; }
+    section h3 { color: var(--as-ablauf); font-size: 1rem; margin-top: var(--as-abstand-l); }
+    .begriffe-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--as-abstand-m); padding: 0; margin: 0; }
+    .begriffe-liste dt { font-weight: 600; color: var(--as-begriff); }
+    .begriffe-liste dd { margin: 0.2em 0 0; }
+    .bestandteile-liste { display: grid; gap: var(--as-abstand-s); margin: 0 0 var(--as-abstand-m); }
+    .bestandteil { display: grid; grid-template-columns: 13rem 1fr; gap: var(--as-abstand-m); align-items: start; }
+    .bestandteil dt { font-weight: 600; color: var(--as-ablauf); }
+    .bestandteil dd { margin: 0; }
+    @media (max-width: 520px) { .bestandteil { grid-template-columns: 1fr; } }
+    ol.ablauf-liste li { margin-bottom: 0.6em; }
+
+    /* ---------- Animation ---------- */
+    .ea-teil { margin-bottom: var(--as-abstand-l); }
+    .ea-teil__titel { font-weight: 600; color: var(--as-ablauf); margin-bottom: var(--as-abstand-s); }
+
+    .ml-svg { width: 100%; max-width: 340px; height: 260px; background: var(--as-flaeche-erhoeht); border: 1px solid var(--as-rahmen); border-radius: var(--as-radius-s); }
+    .ml-punkt-a { fill: var(--as-begriff); }
+    .ml-punkt-b { fill: var(--as-akzent); }
+    .ml-punkt-unbekannt { fill: var(--as-text-gedaempft); }
+    .ml-punkt--hervor { stroke: var(--as-ablauf); stroke-width: 2.5; }
+    .ml-testpunkt { fill: none; stroke: var(--as-text); stroke-width: 2; }
+    .ml-linie { stroke: var(--as-rahmen); stroke-width: 1; }
+    .ml-linie--hervor { stroke: var(--as-ablauf); stroke-width: 1.6; }
+    .ml-zentrum { stroke: var(--as-text); stroke-width: 2; fill: var(--as-flaeche); }
+    .ml-zentrum--alt { opacity: 0.35; stroke-dasharray: 3 2; }
+    .ml-text { font-size: 8px; fill: var(--as-text-gedaempft); }
+    .ml-werte { margin-top: var(--as-abstand-s); font-size: 0.82rem; }
+    .ml-werte div { margin-bottom: 0.2em; }
+    .ml-werte .ergebnis { color: var(--as-akzent); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="modul-wrapper">
+    <header class="modul-kopf">
+      <div>
+        <h1>VL 10 – Machine Learning II</h1>
+        <p class="modul-kopf__meta">Adaptive Systeme</p>
+      </div>
+      <div style="display:flex; gap: var(--as-abstand-s); align-items:center;">
+        <a class="as-button as-button--sekundaer" href="../index.html">Zur Lernseite</a>
+        <button id="as-theme-toggle" class="as-button as-button--icon as-button--sekundaer" type="button">🌙 Dunkles Erscheinungsbild</button>
+      </div>
+    </header>
+
+    <p class="hinweis-korrektur">
+      <strong>Hinweis:</strong> Ursprünglich war geplant, dass VL 10 Entscheidungsbäume
+      behandelt. Beim Lesen der tatsächlichen Foliensätze zeigte sich, dass
+      <code>VL10-Machine-Learning-II.pdf</code> Nearest Neighbour und k-Means behandelt,
+      während <code>VL11-Machine-Learning-III.pdf</code> Entscheidungsbäume behandelt –
+      genau umgekehrt zur ursprünglichen Annahme. Dieses Modul folgt dem tatsächlichen
+      Folieninhalt und gehört daher inhaltlich zu Übung 11, nicht Übung 10 (Details in
+      <code>design.md</code>, Abschnitt 2).
+    </p>
+
+    <section id="kernidee">
+      <h2><span class="modul-nr">1</span> Kernidee in drei Sätzen</h2>
+      <p>
+        Nearest Neighbour und k-Means beruhen auf derselben Grundidee – Ähnliches gehört
+        in dieselbe Kategorie –, unterscheiden sich aber grundlegend im Lernparadigma.
+        k-Nearest-Neighbor ist überwachtes Lernen: Es braucht bereits klassifizierte
+        Trainingspunkte und ordnet eine neue Eingabe der Mehrheitsklasse ihrer k
+        nächsten Nachbarn zu, ohne je ein Modell zu bilden (Lazy Learning). k-Means ist
+        dagegen unüberwachtes Lernen: Es findet ausgehend von zufälligen Startpunkten
+        selbstständig Clusterzentren, denen sich alle Datenpunkte iterativ zuordnen, bis
+        sich die Zentren nicht mehr ändern.
+      </p>
+    </section>
+
+    <section id="begriffe">
+      <h2><span class="modul-nr">2</span> Begriffe</h2>
+      <dl class="begriffe-liste">
+        <div><dt>Nearest Neighbour</dt><dd>Klassifikationsverfahren, das einem Testpunkt die Klasse seines nächstgelegenen Trainingspunktes zuweist.</dd></div>
+        <div><dt>Lazy Learning</dt><dd>Es gibt keine separate Lernphase – die Trainingsdaten werden direkt zur Klassifikation genutzt.</dd></div>
+        <div><dt>Distanzfunktion (Metrik)</dt><dd>Berechnet den Abstand zwischen zwei Punkten, z. B. euklidisch, Manhattan oder über Cosine-Similarity.</dd></div>
+        <div><dt>Voronoi-Diagramm</dt><dd>Zerlegt den Raum anhand der Trainingspunkte in Entscheidungsgrenzen.</dd></div>
+        <div><dt>k-Nearest-Neighbor (k-NN)</dt><dd>Erweiterung, bei der die Mehrheitsklasse der k nächsten Nachbarn entscheidet, statt nur des einen nächsten.</dd></div>
+        <div><dt>Fluch der Dimensionalität</dt><dd>Mit steigender Anzahl an Merkmalen wächst die benötigte Trainingsmenge überproportional.</dd></div>
+        <div><dt>Embedding</dt><dd>Abbildung hochdimensionaler Eingaben (Text, Bild) auf einen niedrigdimensionalen Vektorraum, der die semantische Ähnlichkeit bewahrt.</dd></div>
+        <div><dt>k-Means</dt><dd>Unüberwachtes, iteratives Verfahren, das Datenpunkte automatisch in k Cluster mit je einem Clusterzentrum einteilt.</dd></div>
+        <div><dt>Clusterzentrum</dt><dd>Der Schwerpunkt aller einem Cluster zugeordneten Punkte.</dd></div>
+        <div><dt>Konvergenz (bei k-Means)</dt><dd>Zustand, in dem sich die Clusterzentren zwischen zwei Iterationen nicht mehr ändern.</dd></div>
+      </dl>
+    </section>
+
+    <section id="bestandteile">
+      <h2><span class="modul-nr">3</span> Bestandteile</h2>
+
+      <h3>k-Nearest-Neighbor</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Trainingsmenge</dt><dd>Bereits klassifizierte Punkte, dienen direkt als Wissensbasis.</dd></div>
+        <div class="bestandteil"><dt>Distanzfunktion</dt><dd>Bestimmt, welche Trainingspunkte einem Testpunkt am nächsten liegen.</dd></div>
+        <div class="bestandteil"><dt>Mehrheitsentscheid der k nächsten Nachbarn</dt><dd>Legt die Klasse des Testpunkts fest.</dd></div>
+      </dl>
+
+      <h3>k-Means</h3>
+      <dl class="bestandteile-liste">
+        <div class="bestandteil"><dt>Clusterzentren μ₁..μₖ</dt><dd>Initial zufällig gewählt, repräsentieren je ein Cluster.</dd></div>
+        <div class="bestandteil"><dt>Zuordnungsschritt</dt><dd>Jeder Punkt wird per 1-NN dem nächstgelegenen Zentrum zugeordnet.</dd></div>
+        <div class="bestandteil"><dt>Neuberechnungsschritt</dt><dd>Jedes Zentrum wird auf den Schwerpunkt seiner zugeordneten Punkte verschoben.</dd></div>
+      </dl>
+    </section>
+
+    <section id="ablauf">
+      <h2><span class="modul-nr">4</span> Ablauf</h2>
+
+      <h3>k-Nearest-Neighbor</h3>
+      <ol class="ablauf-liste">
+        <li>Für einen neuen Testpunkt wird die Distanz zu allen Trainingspunkten berechnet.</li>
+        <li>Die k Trainingspunkte mit der geringsten Distanz werden bestimmt.</li>
+        <li>Der Testpunkt erhält die Klasse, die unter diesen k Nachbarn am häufigsten vorkommt.</li>
+        <li>Bei Gleichstand entscheidet z. B. der Zufall oder die insgesamt häufigste Klasse der Trainingsmenge.</li>
+      </ol>
+
+      <h3>k-Means</h3>
+      <ol class="ablauf-liste">
+        <li>Die Anzahl k der gesuchten Cluster wird festgelegt und k Clusterzentren zufällig initialisiert.</li>
+        <li>Jeder Datenpunkt wird dem Clusterzentrum mit der geringsten Distanz zugeordnet.</li>
+        <li>Jedes Clusterzentrum wird neu als Schwerpunkt aller ihm zugeordneten Punkte berechnet.</li>
+        <li>Schritt 2 und 3 wiederholen sich, bis sich die Zuordnung nicht mehr ändert (Konvergenz) oder eine maximale Anzahl an Iterationen erreicht ist.</li>
+        <li>Führt das Ergebnis zu einer unbefriedigenden Aufteilung, wird der Algorithmus mit anderen Startzentren neu gestartet.</li>
+      </ol>
+    </section>
+
+    <section id="animation">
+      <h2><span class="modul-nr">5</span> Animation: Überwacht vs. unüberwacht am selben Prinzip</h2>
+      <p>
+        Teil A zeigt k-NN an einem Beispiel mit einem Ausreißer. Teil B zeigt k-Means auf
+        einem eigenen kleinen Datensatz – im Zoo-Datensatz aus Übung 11 sind es viele
+        Merkmalsdimensionen statt zwei, das Prinzip ist aber identisch.
+      </p>
+
+      <div class="ea-teil" id="teil-knn">
+        <div class="ea-teil__titel">Teil A – k-Nearest-Neighbor</div>
+        <svg class="ml-svg" id="knn-svg" viewBox="0 0 200 160"></svg>
+        <div class="ml-werte" id="knn-werte"></div>
+      </div>
+
+      <div class="ea-teil" id="teil-kmeans">
+        <div class="ea-teil__titel">Teil B – k-Means</div>
+        <svg class="ml-svg" id="km-svg" viewBox="0 0 200 160"></svg>
+        <div class="ml-werte" id="km-werte"></div>
+      </div>
+
+      <div class="as-step-controller">
+        <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
+        <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
+        <button class="as-button" type="button" data-action="next">Weiter →</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <span class="as-step-zaehler" id="ea-zaehler"></span>
+      </div>
+    </section>
+
+    <section id="praktikum">
+      <h2><span class="modul-nr">6</span> Praktikum</h2>
+      <p>
+        <strong>Was war gefordert:</strong> Den k-Means-Algorithmus implementieren und am
+        Zoo-Datensatz testen (Aufgabe 11.1) – mit verschiedenen Abstandsmaßen und
+        Cluster-Anzahlen experimentieren, mit dem Ziel, die im Datensatz vorgegebene
+        Referenz-Klassifikation noch deutlich zu verbessern. Zusätzlich den
+        k-Nearest-Neighbor-Algorithmus implementieren und mit den Datensätzen sonar,
+        iris und wine testen (Aufgabe 11.2) – Trainings- und Testmenge trennen und für
+        verschiedene k-Werte die Performance vergleichen; iris und wine haben dabei mehr
+        als zwei Klassen.
+      </p>
+      <p>
+        <strong>Was sie anschaulich zeigt:</strong> Die Animation zeigt genau die beiden
+        Mechanismen – Mehrheitsentscheid der nächsten Nachbarn bei k-NN, iterative
+        Zuordnung und Neuberechnung bei k-Means – an einem winzigen, zweidimensionalen
+        Beispiel mit sichtbarem Ausreißer. Der Zoo-Datensatz der Übung nutzt denselben
+        Mechanismus in einem höherdimensionalen Merkmalsraum.
+      </p>
+      <p>
+        <strong>Prüfungsrelevante Beobachtung:</strong> Übung 11 verlangt ausdrücklich,
+        mit k-Means die vorgegebene Referenz-Klassifikation im Zoo-Datensatz zu
+        verbessern – ein guter Hinweis darauf, dass unüberwachtes Lernen manchmal
+        andere, ebenso plausible Gruppierungen findet als eine von Menschen vorgegebene
+        Klasseneinteilung.
+      </p>
+    </section>
+
+    <section id="verbindungen">
+      <h2><span class="modul-nr">7</span> Verbindungen</h2>
+      <p>
+        <strong>Zoo-Datensatz-Strang:</strong> Übung 9 (Wettbewerbslernen, VL 09) →
+        Übung 11 (k-Means/k-NN, dieses Modul) → Übung 10 (Entscheidungsbaum, VL 11).
+        Vergleichsfrage bleibt: überwacht oder unüberwacht? k-Means ist wie
+        Wettbewerbslernen unüberwacht, k-NN und der Entscheidungsbaum sind überwacht.
+      </p>
+      <p>
+        <strong>VL 09 – Machine Learning I:</strong> k-Means und Wettbewerbslernen
+        ähneln sich strukturell – beide ordnen Punkte iterativ Repräsentanten
+        (Clusterzentren bzw. Gewichtsvektoren) zu und passen diese an. k-Means
+        verschiebt ein Zentrum jedoch exakt auf den Schwerpunkt aller ihm zugeordneten
+        Punkte, während Wettbewerbslernen den Gewinner nur ein Stück in Richtung einer
+        einzelnen Eingabe verschiebt.
+      </p>
+    </section>
+
+    <section id="pruefungsfragen">
+      <h2><span class="modul-nr">8</span> Prüfungsfragen</h2>
+      <div id="quiz-container">
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Lazy Learning?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Lazy Learning bezeichnet Verfahren, die keine separate Lernphase
+            durchlaufen, in der ein internes Modell aufgebaut wird. Stattdessen werden
+            die Trainingsdaten unverändert gespeichert und erst bei jeder einzelnen
+            Klassifikationsanfrage direkt herangezogen – bei Nearest Neighbour und k-NN
+            etwa durch Berechnung der Distanz zu allen Trainingspunkten. Das steht im
+            Gegensatz zu Verfahren wie neuronalen Netzen, die in einer aufwendigen
+            Trainingsphase ein Modell bilden und danach sehr schnell klassifizieren.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter dem Fluch der Dimensionalität?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Der Fluch der Dimensionalität beschreibt, dass die Anzahl der benötigten
+            Trainingsmuster überproportional mit der Anzahl der Merkmale (Dimensionen)
+            wächst, um einen Raum ausreichend dicht abzudecken. Ein Beispiel aus der
+            Vorlesung: Sind 100 Punkte ausreichend, um den eindimensionalen Raum [0,1]
+            abzudecken, wären im zehndimensionalen Raum bereits 100 hoch 10 Punkte
+            nötig. Für distanzbasierte Verfahren wie k-NN bedeutet das, dass sie bei
+            sehr vielen Merkmalen zunehmend unzuverlässig werden, wenn nicht genügend
+            Trainingsdaten vorhanden sind.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Definitionsfrage</span><br>Was versteht man unter Konvergenz bei k-Means?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Konvergenz bei k-Means bedeutet, dass sich die Clusterzentren zwischen
+            zwei aufeinanderfolgenden Iterationen nicht mehr ändern – jeder Punkt wird
+            weiterhin demselben Zentrum zugeordnet wie zuvor, sodass die Neuberechnung
+            der Schwerpunkte dieselben Positionen liefert wie im vorherigen Schritt. Der
+            Algorithmus terminiert dann und gibt die aktuellen Zentren als Ergebnis
+            zurück. Konvergiert der Algorithmus nicht, sondern oszilliert das Ergebnis
+            zwischen mehreren Zuständen, muss nach einer festgelegten Anzahl an
+            Iterationen abgebrochen werden.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich k-Nearest-Neighbor von k-Means?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>k-Nearest-Neighbor ist ein überwachtes Klassifikationsverfahren: Es
+            benötigt bereits klassifizierte Trainingspunkte und ordnet einem neuen
+            Testpunkt die Mehrheitsklasse seiner k nächsten Nachbarn zu, ohne jemals ein
+            Modell zu verändern. k-Means ist dagegen ein unüberwachtes Verfahren: Es
+            kennt keine vorgegebenen Klassen, sondern nur die gewünschte Anzahl k an
+            Clustern, und findet iterativ selbst Clusterzentren, denen sich die
+            Datenpunkte zuordnen. Beide nutzen zwar dasselbe Zuordnungsprinzip über
+            Distanzen, aber zu grundsätzlich verschiedenen Zwecken.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich k-NN von einem neuronalen Netz als Klassifikationsverfahren?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ein neuronales Netz betreibt aktives Lernen: Es braucht eine
+            Trainingsphase, in der ein internes Modell (die Gewichte) gebildet wird,
+            lernt dadurch vergleichsweise langsam, klassifiziert danach aber sehr
+            schnell und ist als Black-Box schwer nachvollziehbar. k-NN betreibt
+            dagegen Lazy Learning: Es verzichtet auf eine Trainingsphase, lernt also
+            sofort, ist aber bei der eigentlichen Klassifikation langsamer, weil jede
+            Anfrage alle Trainingspunkte einbezieht – dafür ist die Entscheidungsgrundlage
+            transparent und leicht nachvollziehbar.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Abgrenzungsfrage</span><br>Worin unterscheidet sich Nearest Neighbour (k=1) von k-Nearest-Neighbor mit größerem k?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Bei Nearest Neighbour mit k=1 bestimmt ausschließlich der eine
+            nächstgelegene Trainingspunkt die Klasse des Testpunkts – ein einzelner
+            Ausreißer in den Trainingsdaten kann dadurch direkt zu einer
+            Fehlklassifikation führen. Bei größerem k entscheidet stattdessen die
+            Mehrheitsklasse mehrerer naher Nachbarn, wodurch ein einzelner Ausreißer
+            überstimmt werden kann. Ein zu großes k kann allerdings die
+            Entscheidungsgrenze so weit glätten, dass auch echte, feine Unterschiede
+            zwischen Klassen verloren gehen – die Wahl von k ist deshalb laut Vorlesung
+            nicht trivial.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie haben einen klassifizierten Datensatz und möchten neue Datenpunkte schnell und mit wenig Implementierungsaufwand klassifizieren, ohne ein Modell zu trainieren – welches Verfahren wählen Sie?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Dafür eignet sich k-Nearest-Neighbor besonders gut, da es als Lazy
+            Learning ohne separate, aufwendige Trainingsphase auskommt – die
+            Trainingsdaten werden direkt zur Klassifikation genutzt. Die Implementierung
+            ist mit einer Distanzfunktion und einer Mehrheitsentscheidung über die k
+            nächsten Nachbarn vergleichsweise einfach. Ich müsste dabei aber
+            berücksichtigen, dass die Klassifikation selbst bei sehr großen
+            Trainingsmengen langsamer wird, da jede Anfrage potenziell alle
+            Trainingspunkte einbezieht.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Ihr k-Means-Ergebnis ändert sich bei jedem Neustart mit anderen Startzentren deutlich – was folgern Sie daraus, und was können Sie tun?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Das deutet darauf hin, dass der Algorithmus abhängig von der
+            Initialisierung in unterschiedlichen, vermutlich suboptimalen Lösungen
+            hängenbleibt – ein bekanntes Problem von k-Means. Ich würde den Algorithmus
+            mehrfach mit unterschiedlichen, zufälligen Startzentren laufen lassen und
+            das Ergebnis mit der insgesamt geringsten Streuung innerhalb der Cluster
+            auswählen. Zusätzlich würde ich prüfen, ob die Anzahl k der Cluster
+            überhaupt zu den tatsächlichen Daten passt, etwa mithilfe des
+            Silhouettenkoeffizienten.</p>
+          </div>
+        </div>
+
+        <div class="as-quiz-item">
+          <button class="as-quiz-frage" type="button">
+            <span><span class="as-quiz-typ">Anwendungsfrage</span><br>Sie klassifizieren mit 1-NN und bemerken, dass einzelne Ausreißer in den Trainingsdaten zu klar falschen Klassifikationen führen – wie beheben Sie das, ohne die Trainingsdaten zu bereinigen?</span>
+          </button>
+          <div class="as-quiz-antwort">
+            <p>Ich würde von reinem Nearest Neighbour (k=1) auf k-Nearest-Neighbor mit
+            einem größeren k wechseln. Dadurch entscheidet nicht mehr ein einzelner,
+            möglicherweise verrauschter Trainingspunkt über die Klasse, sondern die
+            Mehrheit mehrerer naher Nachbarn, wodurch ein einzelner Ausreißer
+            überstimmt wird. Dabei würde ich k nicht zu groß wählen, da sonst auch echte
+            Unterschiede zwischen benachbarten Klassen verloren gehen könnten – die
+            passende Größe würde ich experimentell über eine Testmenge bestimmen.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="typische-fallen">
+      <h2><span class="modul-nr">9</span> Typische Fallen</h2>
+      <ul>
+        <li><span class="as-achtung">k-NN für unüberwachtes Lernen halten:</span> Es ist
+        überwacht – die Klassen der Trainingspunkte müssen bekannt sein.</li>
+        <li><span class="as-achtung">k-Means für überwachtes Lernen halten:</span> Es
+        ist unüberwacht – es gibt keine bekannten Klassen, nur die gewünschte Anzahl k
+        an Clustern.</li>
+        <li><span class="as-achtung">Lazy Learning mit „kein Lernen" verwechseln:</span>
+        Es findet keine separate Trainingsphase statt, die Trainingsdaten werden aber
+        bei jeder Klassifikation direkt genutzt – das ist weiterhin eine Form des
+        Lernens, nur ohne Modellbildung.</li>
+        <li><span class="as-achtung">Annehmen, k-Means finde garantiert die optimale
+        Clustereinteilung:</span> Der Algorithmus kann in suboptimalen Lösungen
+        hängenbleiben und erfordert dann einen Neustart mit anderer Initialisierung.</li>
+        <li><span class="as-achtung">Vergessen, die Merkmalsachsen zu
+        normieren:</span> Bei k-NN und k-Means verzerren unterschiedlich skalierte
+        Merkmale den Abstand in eine Richtung.</li>
+        <li><span class="as-achtung">Ein größeres k bei k-NN pauschal für „besser"
+        halten:</span> Zu große k-Werte können die Entscheidungsgrenze so weit glätten,
+        dass feine, aber echte Unterschiede zwischen Klassen verloren gehen.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="../assets/module.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var NS = "http://www.w3.org/2000/svg";
+      function svgEl(tag, attrs) {
+        var el = document.createElementNS(NS, tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+      function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+      function xPx(x) { return 15 + x * 30; }
+      function yPx(y) { return 150 - y * 25; }
+
+      // ---------- Teil A: k-NN ----------
+
+      var KLASSE_A = [[1, 1], [1.6, 1.9], [1, 2]];
+      var KLASSE_B = [[4, 4], [4.5, 3.5], [5, 4.5], [1.65, 1.4]];
+      var TESTPUNKT = [1.5, 1.5];
+
+      function alleKnnPunkte() {
+        return KLASSE_A.map(function (p) { return { p: p, klasse: "a" }; })
+          .concat(KLASSE_B.map(function (p) { return { p: p, klasse: "b" }; }))
+          .map(function (e) { e.d = dist(e.p, TESTPUNKT); return e; })
+          .sort(function (x, y) { return x.d - y.d; });
+      }
+
+      function renderKnn(step) {
+        var svg = document.getElementById("knn-svg");
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var sortiert = alleKnnPunkte();
+
+        var hervorAnzahl = step === 2 ? 1 : step === 3 ? 3 : 0;
+        sortiert.forEach(function (e, i) {
+          if (i < hervorAnzahl) {
+            svg.appendChild(svgEl("line", { x1: xPx(TESTPUNKT[0]), y1: yPx(TESTPUNKT[1]), x2: xPx(e.p[0]), y2: yPx(e.p[1]), class: "ml-linie--hervor" }));
+          }
+        });
+
+        sortiert.forEach(function (e, i) {
+          var hervor = i < hervorAnzahl;
+          svg.appendChild(svgEl("circle", {
+            cx: xPx(e.p[0]), cy: yPx(e.p[1]), r: hervor ? 6 : 4.5,
+            class: "ml-punkt-" + e.klasse + (hervor ? " ml-punkt--hervor" : "")
+          }));
+        });
+
+        svg.appendChild(svgEl("circle", { cx: xPx(TESTPUNKT[0]), cy: yPx(TESTPUNKT[1]), r: 5, class: "ml-testpunkt" }));
+        svg.appendChild(svgEl("text", { x: xPx(TESTPUNKT[0]) + 8, y: yPx(TESTPUNKT[1]) - 8, class: "ml-text" })).textContent = "Testpunkt";
+
+        var werte = document.getElementById("knn-werte");
+        werte.innerHTML = "";
+        var zeilen = [];
+        if (step >= 1) {
+          zeilen.push("Distanzen sortiert: " + sortiert.map(function (e) { return e.klasse.toUpperCase() + "(" + e.d.toFixed(2) + ")"; }).join(", "));
+        }
+        if (step === 2) {
+          zeilen.push("<span class='ergebnis'>k=1: nächster Nachbar ist Klasse " + sortiert[0].klasse.toUpperCase() + " – vermutlich der Ausreißer!</span>");
+        }
+        if (step === 3) {
+          var top3 = sortiert.slice(0, 3);
+          var countA = top3.filter(function (e) { return e.klasse === "a"; }).length;
+          var countB = top3.filter(function (e) { return e.klasse === "b"; }).length;
+          zeilen.push("k=3 nächste Nachbarn: " + top3.map(function (e) { return e.klasse.toUpperCase(); }).join(", ") + " – Mehrheit A=" + countA + ", B=" + countB);
+          zeilen.push("<span class='ergebnis'>k=3: Mehrheitsklasse " + (countA > countB ? "A" : "B") + " – der Ausreißer wird überstimmt.</span>");
+        }
+        zeilen.forEach(function (t) {
+          var div = document.createElement("div");
+          div.innerHTML = t;
+          werte.appendChild(div);
+        });
+      }
+
+      // ---------- Teil B: k-Means ----------
+
+      var PUNKTE = [[1, 1], [1.5, 1.5], [1, 2], [5, 5], [5.5, 4.5], [5, 6]];
+      var START_MU = [[2, 4], [4, 2]];
+
+      function berechneKmIteration(mu) {
+        var cluster0 = [], cluster1 = [];
+        PUNKTE.forEach(function (p) {
+          (dist(p, mu[0]) <= dist(p, mu[1]) ? cluster0 : cluster1).push(p);
+        });
+        function mean(pts) {
+          if (!pts.length) return null;
+          var sx = 0, sy = 0;
+          pts.forEach(function (p) { sx += p[0]; sy += p[1]; });
+          return [sx / pts.length, sy / pts.length];
+        }
+        return { cluster0: cluster0, cluster1: cluster1, neuMu: [mean(cluster0) || mu[0], mean(cluster1) || mu[1]] };
+      }
+
+      function zeichneKmZustand(svg, mu, zuordnung, alteMu) {
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        if (alteMu) {
+          alteMu.forEach(function (m) {
+            svg.appendChild(svgEl("circle", { cx: xPx(m[0]), cy: yPx(m[1]), r: 7, class: "ml-zentrum ml-zentrum--alt" }));
+          });
+        }
+        PUNKTE.forEach(function (p) {
+          var klasse = zuordnung ? (zuordnung.cluster0.indexOf(p) !== -1 ? "a" : "b") : "unbekannt";
+          svg.appendChild(svgEl("circle", { cx: xPx(p[0]), cy: yPx(p[1]), r: 4.5, class: "ml-punkt-" + klasse }));
+        });
+        mu.forEach(function (m, i) {
+          svg.appendChild(svgEl("circle", { cx: xPx(m[0]), cy: yPx(m[1]), r: 7, class: "ml-zentrum" }));
+          svg.appendChild(svgEl("text", { x: xPx(m[0]) + 9, y: yPx(m[1]) + 3, class: "ml-text" })).textContent = "μ" + i;
+        });
+      }
+
+      function renderKmeans(step) {
+        var svg = document.getElementById("km-svg");
+        var werte = document.getElementById("km-werte");
+        werte.innerHTML = "";
+        var zeilen = [];
+
+        if (step < 4) { while (svg.firstChild) svg.removeChild(svg.firstChild); return; }
+
+        if (step === 4) {
+          zeichneKmZustand(svg, START_MU, null, null);
+          zeilen.push("Zwei absichtlich ungünstig platzierte Startzentren μ₀ und μ₁.");
+        } else if (step === 5) {
+          var it0 = berechneKmIteration(START_MU);
+          zeichneKmZustand(svg, START_MU, it0, null);
+          zeilen.push("Zuordnung 1: μ₀ gewinnt " + it0.cluster0.length + " von 6 Punkten, μ₁ nur " + it0.cluster1.length + ".");
+        } else if (step === 6) {
+          var it0b = berechneKmIteration(START_MU);
+          zeichneKmZustand(svg, it0b.neuMu, it0b, START_MU);
+          zeilen.push("Neuberechnung 1: μ₀=(" + it0b.neuMu[0].map(function (v) { return v.toFixed(2); }).join(",") + "), μ₁=(" + it0b.neuMu[1].map(function (v) { return v.toFixed(2); }).join(",") + ")");
+        } else if (step === 7) {
+          var it0c = berechneKmIteration(START_MU);
+          var it1 = berechneKmIteration(it0c.neuMu);
+          zeichneKmZustand(svg, it0c.neuMu, it1, null);
+          zeilen.push("Zuordnung 2 mit den neuen Zentren: μ₀ bekommt " + it1.cluster0.length + ", μ₁ bekommt " + it1.cluster1.length + " Punkte – die beiden natürlichen Gruppen trennen sich.");
+        } else if (step >= 8) {
+          var it0d = berechneKmIteration(START_MU);
+          var it1d = berechneKmIteration(it0d.neuMu);
+          var it2 = berechneKmIteration(it1d.neuMu);
+          zeichneKmZustand(svg, it1d.neuMu, it2, it0d.neuMu);
+          var unveraendert = it2.cluster0.length === it1d.cluster0.length;
+          zeilen.push("Neuberechnung 2: μ₀=(" + it1d.neuMu[0].map(function (v) { return v.toFixed(2); }).join(",") + "), μ₁=(" + it1d.neuMu[1].map(function (v) { return v.toFixed(2); }).join(",") + ")");
+          zeilen.push("<span class='ergebnis'>Eine erneute Zuordnung ändert nichts mehr – der Algorithmus ist konvergiert.</span>");
+        }
+
+        zeilen.forEach(function (t) {
+          var div = document.createElement("div");
+          div.innerHTML = t;
+          werte.appendChild(div);
+        });
+      }
+
+      // ---------- Schrittsteuerung ----------
+
+      var SCHRITTE = [
+        "Sechs Trainingspunkte aus zwei Klassen (blau/orange) und ein Testpunkt. Ein orangefarbener Punkt liegt als Ausreißer sehr nah an der blauen Gruppe.",
+        "Die Distanz vom Testpunkt zu allen sechs Trainingspunkten wird berechnet und sortiert.",
+        "Nearest Neighbour (k=1) wählt nur den allernächsten Punkt – hier ausgerechnet den Ausreißer, das Ergebnis ist vermutlich falsch.",
+        "k-Nearest-Neighbor mit k=3 lässt die drei nächsten Punkte abstimmen – die Mehrheit überstimmt den Ausreißer und klassifiziert korrekt.",
+        "Für k-Means: sechs unbeschriftete Punkte, die zwei natürliche Gruppen bilden, plus zwei absichtlich ungünstig platzierte Startzentren.",
+        "Erster Zuordnungsschritt: Jeder Punkt wird per 1-NN dem näheren der beiden Zentren zugeordnet – wegen der schlechten Startposition sehr ungleich verteilt.",
+        "Erster Neuberechnungsschritt: Beide Zentren springen auf den Schwerpunkt der ihnen gerade zugeordneten Punkte.",
+        "Zweiter Zuordnungsschritt mit den neuen Zentren: Jetzt trennen sich die beiden natürlichen Gruppen bereits korrekt.",
+        "Zweiter Neuberechnungsschritt und Konvergenz: Eine weitere Zuordnung würde nichts mehr ändern – k-Means ist fertig."
+      ];
+
+      function render(step) {
+        renderKnn(Math.min(step, 3));
+        renderKmeans(step);
+
+        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.ASModule) {
+          window.ASModule.initTheme(document.getElementById("as-theme-toggle"));
+          window.ASModule.initQuiz("#quiz-container");
+        }
+
+        var controller = window.ASModule.createStepController({
+          stepCount: SCHRITTE.length,
+          onRender: render
+        });
+
+        document.querySelectorAll("[data-action]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var action = btn.getAttribute("data-action");
+            if (action === "next") controller.next();
+            else if (action === "prev") controller.prev();
+            else if (action === "reset") controller.reset();
+            else if (action === "play") controller.play();
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

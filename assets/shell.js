@@ -19,7 +19,8 @@
     sidebar: document.getElementById("as-sidebar"),
     main: document.getElementById("as-main"),
     suche: document.getElementById("as-suche"),
-    themeToggle: document.getElementById("as-theme-toggle")
+    themeToggle: document.getElementById("as-theme-toggle"),
+    headerZurueck: document.getElementById("as-header-zurueck")
   };
 
   function ladeFortschritt() {
@@ -112,6 +113,9 @@
 
   function onRoute() {
     var id = aktuelleModulId();
+    el.headerZurueck.hidden = !id;
+    el.sidebar.hidden = !!id;
+
     if (!id) {
       renderHome();
       renderSidebar();
@@ -284,12 +288,7 @@
     hinweis.className = "as-hinweiskasten as-fehlender-hinweis";
     hinweis.innerHTML =
       "<p>Für <code>" + escapeHtml(id) + "</code> ist kein Modul im Manifest hinterlegt.</p>";
-    var zurueck = document.createElement("button");
-    zurueck.className = "as-button as-button--sekundaer";
-    zurueck.textContent = "Zur Übersicht";
-    zurueck.addEventListener("click", gehezuUebersicht);
     el.main.appendChild(hinweis);
-    el.main.appendChild(zurueck);
   }
 
   function renderModulAnsicht(entry) {
@@ -298,24 +297,6 @@
 
     var leiste = document.createElement("div");
     leiste.className = "as-modul-ansicht__leiste";
-
-    var titel = document.createElement("h2");
-    titel.textContent = "VL " + entry.nummer + " – " + entry.titel;
-    leiste.appendChild(titel);
-
-    var zurueck = document.createElement("button");
-    zurueck.className = "as-button as-button--sekundaer";
-    zurueck.textContent = "← Übersicht";
-    zurueck.addEventListener("click", gehezuUebersicht);
-    leiste.appendChild(zurueck);
-
-    var neuerTab = document.createElement("a");
-    neuerTab.className = "as-button as-button--sekundaer";
-    neuerTab.href = url;
-    neuerTab.target = "_blank";
-    neuerTab.rel = "noopener";
-    neuerTab.textContent = "In neuem Tab öffnen ↗";
-    leiste.appendChild(neuerTab);
 
     var fortschrittLabel = document.createElement("label");
     fortschrittLabel.className = "as-kachel__fortschritt";
@@ -427,6 +408,7 @@
     }
 
     el.suche.addEventListener("input", wendeSucheAn);
+    el.headerZurueck.addEventListener("click", gehezuUebersicht);
     window.addEventListener("hashchange", onRoute);
   }
 

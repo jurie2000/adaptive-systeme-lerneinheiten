@@ -76,12 +76,26 @@
       if (mq.addEventListener) mq.addEventListener("change", onChange);
       else if (mq.addListener) mq.addListener(onChange);
     }
+
+    // Shell (index.html) und eingebettetes Modul-iframe sind zwei separate
+    // Documents auf gleicher Origin - ein Klick im einen aktualisiert das
+    // andere nicht automatisch. Der "storage"-Event feuert im jeweils
+    // anderen Fenster und hält beide synchron, damit ein einziger
+    // Umschalt-Button überall reicht.
+    global.addEventListener("storage", function (e) {
+      if (e.key !== THEME_KEY) return;
+      applyTheme(e.newValue);
+      if (toggleButton) updateToggleLabel(toggleButton);
+    });
   }
 
   function updateToggleLabel(button) {
     var dark = currentEffectiveTheme() === "dark";
+    var beschriftung = dark ? "Helles Erscheinungsbild" : "Dunkles Erscheinungsbild";
     button.setAttribute("aria-pressed", String(dark));
-    button.textContent = dark ? "☀️ Helles Erscheinungsbild" : "🌙 Dunkles Erscheinungsbild";
+    button.setAttribute("aria-label", beschriftung);
+    button.title = beschriftung;
+    button.textContent = dark ? "☀️" : "🌙";
   }
 
   // ---------- Prüfungsfragen (Quiz) ----------

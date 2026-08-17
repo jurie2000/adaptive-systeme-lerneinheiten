@@ -38,6 +38,7 @@
     .ls-punkt-alt { fill: var(--as-text-gedaempft); opacity: 0.5; }
     .ls-punkt-aktuell { fill: var(--as-akzent); }
     .ls-punkt-lokal, .ls-punkt-global { fill: var(--as-ablauf); }
+    .ls-schwellwert-linie { stroke: var(--as-begriff); stroke-width: 1; stroke-dasharray: 3 2; }
 
     .hk-row { display: flex; align-items: center; gap: var(--as-abstand-m); margin-bottom: var(--as-abstand-s); flex-wrap: wrap; }
     .hk-row[data-versteckt="true"] { display: none; }
@@ -140,20 +141,39 @@
 
       <div class="ea-teil" id="teil-lokale-suche">
         <div class="ea-teil__titel">Teil A – Lokale Suche: Hill Climbing vs. Akzeptanzbedingung</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="ls-w-regler">Schwellwert w <output id="ls-w-wert">0.10</output></label>
+            <input type="range" id="ls-w-regler" min="0" max="0.5" step="0.02" value="0.1">
+          </div>
+        </div>
         <div class="ls-charts">
           <div class="ls-chart"><svg id="ls-svg-hc" viewBox="0 0 200 110"></svg><div class="ls-chart__label">Hill Climbing</div></div>
           <div class="ls-chart"><svg id="ls-svg-ta" viewBox="0 0 200 110"></svg><div class="ls-chart__label">Schwellwertakzeptanz (Beispiel)</div></div>
         </div>
+        <p class="hk-hinweis" id="ls-w-hinweis"></p>
       </div>
 
       <div class="ea-teil" id="teil-ga">
         <div class="ea-teil__titel">Teil B – Genetische Algorithmen: Hamming-Klippe</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="hk-n-regler">Zahl N <output id="hk-n-wert">15</output></label>
+            <input type="range" id="hk-n-regler" min="0" max="30" step="1" value="15">
+          </div>
+        </div>
         <div id="hk-container"></div>
         <p class="hk-hinweis" id="hk-hinweis"></p>
       </div>
 
       <div class="ea-teil" id="teil-es">
         <div class="ea-teil__titel">Teil C – Evolutionsstrategien: 1/5-Erfolgsregel</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="es-rate-regler">Erfolgsrate der letzten Mutationen <output id="es-rate-wert">30</output>&nbsp;%</label>
+            <input type="range" id="es-rate-regler" min="0" max="100" step="5" value="30">
+          </div>
+        </div>
         <div class="es-row" id="es-row"></div>
         <p class="hk-hinweis" id="es-hinweis"></p>
       </div>
@@ -410,6 +430,7 @@
 
       var HC_PATH = [15, 18, 21, 23, 25, 25, 25, 25, 25];
       var TA_PATH = [15, 18, 21, 23, 28, 38, 50, 60, 70];
+      var SCHWELLWERT = 0.1;
 
       var NS = "http://www.w3.org/2000/svg";
       function svgEl(tag, attrs) {
@@ -447,21 +468,43 @@
         svg.appendChild(svgEl("circle", { cx: xToPx(aktuell), cy: yToPx(f(aktuell)), r: 3.2, class: "ls-punkt-aktuell" }));
       }
 
+      function renderSchwellwertBand(step) {
+        var idx = Math.min(step, TA_PATH.length - 1);
+        var x = TA_PATH[idx];
+        var fx = f(x);
+        var grenze = Math.max(0, fx - SCHWELLWERT);
+        var svg = document.getElementById("ls-svg-ta");
+        var alt = svg.querySelector(".ls-schwellwert-linie");
+        if (alt) alt.remove();
+        svg.appendChild(svgEl("line", { x1: 0, y1: yToPx(grenze), x2: 200, y2: yToPx(grenze), class: "ls-schwellwert-linie" }));
+        document.getElementById("ls-w-hinweis").textContent = "Bei Schwellwert w=" + SCHWELLWERT.toFixed(2) +
+          " wären an der aktuellen Position (Güte " + fx.toFixed(2) + ") Nachbarn mit Güte ≥ " + grenze.toFixed(2) + " akzeptabel (gestrichelte Linie).";
+      }
+
       // ---------- Teil B: Hamming-Klippe ----------
+
+      var HK_N = 15;
+
+      function toBin5(n) {
+        var s = n.toString(2);
+        while (s.length < 5) s = "0" + s;
+        return s;
+      }
 
       function buildHammingklippe() {
         var container = document.getElementById("hk-container");
-        [["15", "01111"], ["16", "10000"]].forEach(function (paar) {
+        container.innerHTML = "";
+        [HK_N, HK_N + 1].forEach(function (n) {
           var row = document.createElement("div");
           row.className = "hk-row";
           row.dataset.versteckt = "true";
           var label = document.createElement("div");
           label.className = "hk-label";
-          label.textContent = paar[0] + " =";
+          label.textContent = n + " =";
           row.appendChild(label);
           var bits = document.createElement("div");
           bits.className = "hk-bits";
-          paar[1].split("").forEach(function (bit, i) {
+          toBin5(n).split("").forEach(function (bit, i) {
             var b = document.createElement("div");
             b.className = "hk-bit";
             b.textContent = bit;
@@ -477,55 +520,71 @@
         var rows = document.querySelectorAll("#hk-container .hk-row");
         rows[0].dataset.versteckt = step >= 9 ? "false" : "true";
         rows[1].dataset.versteckt = step >= 10 ? "false" : "true";
-        var bits15 = rows[0].querySelectorAll(".hk-bit");
-        var bits16 = rows[1].querySelectorAll(".hk-bit");
+        var bitsN = rows[0].querySelectorAll(".hk-bit");
+        var bitsN1 = rows[1].querySelectorAll(".hk-bit");
         var zeigen = step >= 10;
         var diffAnzahl = 0;
-        bits15.forEach(function (b, i) {
-          var unterschiedlich = zeigen && b.textContent !== bits16[i].textContent;
+        bitsN.forEach(function (b, i) {
+          var unterschiedlich = zeigen && b.textContent !== bitsN1[i].textContent;
           b.dataset.diff = unterschiedlich ? "true" : "false";
-          bits16[i].dataset.diff = unterschiedlich ? "true" : "false";
+          bitsN1[i].dataset.diff = unterschiedlich ? "true" : "false";
           if (unterschiedlich) diffAnzahl++;
         });
         document.getElementById("hk-hinweis").textContent = zeigen
-          ? "Unterschiedliche Bits: " + diffAnzahl + " von 5 – trotz benachbarter Werte."
+          ? "Unterschiedliche Bits: " + diffAnzahl + " von 5 – trotz benachbarter Werte " + HK_N + " und " + (HK_N + 1) + "."
           : "";
       }
 
       // ---------- Teil C: 1/5-Erfolgsregel ----------
 
+      var ES_RATE = 30;
+
+      function berechneSigma(rate) {
+        return rate > 20 ? 1.0 * 1.22 : 1.0 * 0.82;
+      }
+
+      function setEsKreis(id, sigma, labelText) {
+        var px = Math.round(sigma * 60);
+        var kreis = document.getElementById("es-kreis-" + id);
+        kreis.style.width = px + "px";
+        kreis.style.height = px + "px";
+        document.getElementById("es-label-" + id).textContent = labelText;
+      }
+
       function buildEsRow() {
         var row = document.getElementById("es-row");
-        [
-          { id: "start", label: "σ = 1.00 (Start)", sigma: 1.0 },
-          { id: "gross", label: "σ = 1.22 (viele Erfolge)", sigma: 1.22 },
-          { id: "klein", label: "σ = 0.82 (wenige Erfolge)", sigma: 0.82 }
-        ].forEach(function (cfg) {
+        row.innerHTML = "";
+        ["start", "ergebnis"].forEach(function (id) {
           var item = document.createElement("div");
           item.className = "es-item";
-          item.id = "es-" + cfg.id;
-          item.dataset.versteckt = cfg.id === "start" ? "false" : "true";
+          item.id = "es-" + id;
+          item.dataset.versteckt = id === "start" ? "false" : "true";
           var kreis = document.createElement("div");
           kreis.className = "es-kreis";
-          var px = Math.round(cfg.sigma * 60);
-          kreis.style.width = px + "px";
-          kreis.style.height = px + "px";
+          kreis.id = "es-kreis-" + id;
           item.appendChild(kreis);
           var label = document.createElement("div");
           label.className = "es-label";
-          label.textContent = cfg.label;
+          label.id = "es-label-" + id;
           item.appendChild(label);
           row.appendChild(item);
         });
+        setEsKreis("start", 1.0, "σ = 1.00 (Start)");
       }
 
       function setEsSchritt(step) {
         var hinweis = document.getElementById("es-hinweis");
-        document.getElementById("es-gross").dataset.versteckt = step >= 11 ? "false" : "true";
-        document.getElementById("es-klein").dataset.versteckt = step >= 12 ? "false" : "true";
-        if (step === 11) hinweis.textContent = "Mehr als 1/5 der letzten Mutationen waren erfolgreich → σ wächst um Faktor 1,22.";
-        else if (step >= 12) hinweis.textContent = "Weniger als 1/5 der letzten Mutationen waren erfolgreich → σ schrumpft um Faktor 0,82.";
-        else hinweis.textContent = "";
+        var sigma = berechneSigma(ES_RATE);
+        var gewachsen = ES_RATE > 20;
+        document.getElementById("es-ergebnis").dataset.versteckt = step >= 11 ? "false" : "true";
+        if (step >= 11) {
+          setEsKreis("ergebnis", sigma, "σ = " + sigma.toFixed(2) + (gewachsen ? " (viele Erfolge)" : " (wenige Erfolge)"));
+          hinweis.textContent = gewachsen
+            ? "Erfolgsrate " + ES_RATE + "% > 1/5 → mehr als ein Fünftel der letzten Mutationen waren erfolgreich, σ wächst um Faktor 1,22."
+            : "Erfolgsrate " + ES_RATE + "% ≤ 1/5 → weniger als ein Fünftel der letzten Mutationen waren erfolgreich, σ schrumpft um Faktor 0,82.";
+        } else {
+          hinweis.textContent = "";
+        }
       }
 
       // ---------- Teil D: GP-Syntaxbaum ----------
@@ -569,34 +628,39 @@
 
       // ---------- Schrittsteuerung ----------
 
-      var SCHRITTE = [
-        "Ausgangspunkt für beide Verfahren ist dieselbe Position auf einer Beispiel-Gütelandschaft mit einem niedrigeren lokalen und einem höheren globalen Optimum.",
-        "Beide Verfahren bewegen sich zunächst gleich: Ein Nachbarschaftsschritt mit besserer Güte wird immer akzeptiert.",
-        "Beide klettern weiter den nächstgelegenen Hügel hinauf.",
-        "Kurz vor dem lokalen Optimum verhalten sich beide Verfahren noch identisch.",
-        "Ab hier trennen sich die Wege: Hill Climbing akzeptiert nur noch echte Verbesserungen und bleibt auf dem lokalen Optimum stehen. Die Schwellwertakzeptanz erlaubt dagegen eine Verschlechterung innerhalb ihres Schwellwerts und bewegt sich weiter.",
-        "Die Schwellwertakzeptanz steigt probeweise ins Tal ab – eine Verschlechterung, die Hill Climbing niemals akzeptieren würde.",
-        "Von dort aus findet die Schwellwertakzeptanz den Aufstieg zum deutlich höheren globalen Optimum.",
-        "Der Schwellwert sinkt mit der Zeit weiter, sodass sich das Verfahren zunehmend wie Hill Climbing verhält, sobald es sich einer guten Lösung nähert.",
-        "Ergebnis: Hill Climbing bleibt im lokalen Optimum stecken, die Schwellwertakzeptanz erreicht dank der erlaubten Zwischenverschlechterung das globale Optimum. Simulated Annealing, Record-to-Record Travel, Great Deluge und Tabu-Suche verfolgen alle dasselbe Grundprinzip mit jeweils eigener Regel für erlaubte Verschlechterungen.",
-        "Genetische Algorithmen codieren den Genotyp meist als Bitstring. Die Zahl 15 wird dabei als 01111 dargestellt.",
-        "Die benachbarte Zahl 16 sieht als Bitstring aber völlig anders aus: 10000 – alle fünf Bits ändern sich. Diese Unstetigkeit heißt Hamming-Klippe.",
-        "Evolutionsstrategien mutieren einen reellwertigen Vektor, indem sie eine normalverteilte Zufallszahl mit Schrittweite σ addieren. Sind mehr als ein Fünftel der letzten Mutationen erfolgreich, vergrößert die 1/5-Erfolgsregel σ, um schneller voranzukommen.",
-        "Sind es weniger als ein Fünftel, verkleinert die Regel σ wieder, um in der Nähe eines Optimums feiner zu suchen.",
-        "Genetische Programmierung stellt Individuen als Syntaxbäume dar – hier das Programm (x−y)·x + y/x.",
-        "Die Mutation ersetzt einen zufällig gewählten Teilbaum durch einen neu erzeugten – hier wird das Blatt x im rechten Zweig durch den neuen Teilbaum y+x ersetzt, das Programm wird zu (x−y)·x + y/(y+x)."
-      ];
+      function baueSchritte() {
+        var n = HK_N, n1 = HK_N + 1;
+        return [
+          "Ausgangspunkt für beide Verfahren ist dieselbe Position auf einer Beispiel-Gütelandschaft mit einem niedrigeren lokalen und einem höheren globalen Optimum.",
+          "Beide Verfahren bewegen sich zunächst gleich: Ein Nachbarschaftsschritt mit besserer Güte wird immer akzeptiert.",
+          "Beide klettern weiter den nächstgelegenen Hügel hinauf.",
+          "Kurz vor dem lokalen Optimum verhalten sich beide Verfahren noch identisch.",
+          "Ab hier trennen sich die Wege: Hill Climbing akzeptiert nur noch echte Verbesserungen und bleibt auf dem lokalen Optimum stehen. Die Schwellwertakzeptanz erlaubt dagegen eine Verschlechterung innerhalb ihres Schwellwerts und bewegt sich weiter.",
+          "Die Schwellwertakzeptanz steigt probeweise ins Tal ab – eine Verschlechterung, die Hill Climbing niemals akzeptieren würde.",
+          "Von dort aus findet die Schwellwertakzeptanz den Aufstieg zum deutlich höheren globalen Optimum.",
+          "Der Schwellwert sinkt mit der Zeit weiter, sodass sich das Verfahren zunehmend wie Hill Climbing verhält, sobald es sich einer guten Lösung nähert. Stellen Sie oben w frei ein und beobachten Sie am gestrichelten Band, welche Nachbarn an der aktuellen Position akzeptiert würden.",
+          "Ergebnis: Hill Climbing bleibt im lokalen Optimum stecken, die Schwellwertakzeptanz erreicht dank der erlaubten Zwischenverschlechterung das globale Optimum. Simulated Annealing, Record-to-Record Travel, Great Deluge und Tabu-Suche verfolgen alle dasselbe Grundprinzip mit jeweils eigener Regel für erlaubte Verschlechterungen.",
+          "Genetische Algorithmen codieren den Genotyp häufig als Bitstring. Die Zahl " + n + " wird dabei als " + toBin5(n) + " dargestellt. Stellen Sie oben N frei ein, um verschiedene Zahlenpaare zu testen.",
+          "Die benachbarte Zahl " + n1 + " sieht als Bitstring " + toBin5(n1) + " aus. Je nach N unterscheidet sich die Anzahl der Bits unterschiedlich stark – bei N=15 zeigt sich mit fünf unterschiedlichen Bits die stärkste Form dieser Unstetigkeit, der sogenannten Hamming-Klippe.",
+          "Evolutionsstrategien mutieren einen reellwertigen Vektor, indem sie eine normalverteilte Zufallszahl mit Schrittweite σ addieren. Sind mehr als ein Fünftel der letzten Mutationen erfolgreich, vergrößert die 1/5-Erfolgsregel σ, um schneller voranzukommen. Stellen Sie oben die Erfolgsrate frei ein.",
+          "Sind es weniger als ein Fünftel, verkleinert die Regel σ wieder, um in der Nähe eines Optimums feiner zu suchen.",
+          "Genetische Programmierung stellt Individuen als Syntaxbäume dar – hier das Programm (x−y)·x + y/x.",
+          "Die Mutation ersetzt einen zufällig gewählten Teilbaum durch einen neu erzeugten – hier wird das Blatt x im rechten Zweig durch den neuen Teilbaum y+x ersetzt, das Programm wird zu (x−y)·x + y/(y+x)."
+        ];
+      }
 
       function render(step) {
         renderLandschaftSchritt("ls-svg-hc", HC_PATH, Math.min(step, HC_PATH.length - 1));
         renderLandschaftSchritt("ls-svg-ta", TA_PATH, Math.min(step, TA_PATH.length - 1));
+        renderSchwellwertBand(step);
 
         setHkSchritt(step);
         setEsSchritt(step);
         drawGpTree(step >= 13, step >= 14);
 
-        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
-        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+        var schritte = baueSchritte();
+        document.getElementById("ea-step-text").textContent = schritte[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + schritte.length;
       }
 
       document.addEventListener("DOMContentLoaded", function () {
@@ -612,7 +676,7 @@
         }
 
         var controller = window.ASModule.createStepController({
-          stepCount: SCHRITTE.length,
+          stepCount: 15,
           onRender: render
         });
 
@@ -624,6 +688,31 @@
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
           });
+        });
+
+        var wRegler = document.getElementById("ls-w-regler");
+        var wWert = document.getElementById("ls-w-wert");
+        wRegler.addEventListener("input", function () {
+          SCHWELLWERT = Number(wRegler.value);
+          wWert.textContent = SCHWELLWERT.toFixed(2);
+          controller.goTo(controller.current());
+        });
+
+        var nRegler = document.getElementById("hk-n-regler");
+        var nWert = document.getElementById("hk-n-wert");
+        nRegler.addEventListener("input", function () {
+          HK_N = Number(nRegler.value);
+          nWert.textContent = HK_N;
+          buildHammingklippe();
+          controller.goTo(controller.current());
+        });
+
+        var rateRegler = document.getElementById("es-rate-regler");
+        var rateWert = document.getElementById("es-rate-wert");
+        rateRegler.addEventListener("input", function () {
+          ES_RATE = Number(rateRegler.value);
+          rateWert.textContent = ES_RATE;
+          controller.goTo(controller.current());
         });
       });
     })();

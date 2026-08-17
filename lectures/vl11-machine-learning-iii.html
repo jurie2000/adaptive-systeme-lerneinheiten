@@ -150,6 +150,22 @@
         <table class="gewinn-tabelle" id="gewinn-tabelle"></table>
       </div>
 
+      <div class="as-regler-gruppe">
+        <div class="as-regler">
+          <label for="baum-bp-regler">Neuer Patient: Blood pressure</label>
+          <select id="baum-bp-regler">
+            <option value="high">high</option>
+            <option value="normal" selected>normal</option>
+            <option value="low">low</option>
+          </select>
+        </div>
+        <div class="as-regler">
+          <label for="baum-age-regler">Alter <output id="baum-age-wert">35</output></label>
+          <input type="range" id="baum-age-regler" min="0" max="90" step="1" value="35">
+        </div>
+      </div>
+      <p class="ml-werte" id="baum-test-ergebnis" style="font-size:0.85rem; font-weight:600; min-height:1.3em;"></p>
+
       <div class="as-step-controller">
         <p class="as-step-text" id="ea-step-text" aria-live="polite"></p>
         <button class="as-button as-button--sekundaer" type="button" data-action="reset">Zurücksetzen</button>
@@ -537,7 +553,7 @@
         "Blood pressure erzielt den größten Gewinn an Ordnung und wird als Wurzelattribut gewählt.",
         "Die Zweige „high“ und „low“ sind bereits rein (nur Medikament A bzw. nur B) und werden zu Blättern. Der Zweig „normal“ ist noch gemischt (3×A, 3×B) und braucht eine weitere Aufteilung.",
         "Für die „normal“-Teilmenge wird erneut der Gewinn an Ordnung berechnet – diesmal nur noch für Sex und Age, da Blood pressure bereits verwendet wurde.",
-        "Age erzielt hier den größten – sogar perfekten – Gewinn an Ordnung und wird gewählt. Sex hätte keine reinen Teilmengen erzeugt und spielt im fertigen Baum keine Rolle."
+        "Age erzielt hier den größten – sogar perfekten – Gewinn an Ordnung und wird gewählt. Sex hätte keine reinen Teilmengen erzeugt und spielt im fertigen Baum keine Rolle. Testen Sie unten einen neuen Patienten am fertigen Baum."
       ];
 
       function renderEntropieInfo(step) {
@@ -552,11 +568,27 @@
         }
       }
 
+      function klassifiziere(bp, age) {
+        if (bp === "high") return "A";
+        if (bp === "low") return "B";
+        return age <= 40 ? "A" : "B";
+      }
+
+      function renderTestpatient(step) {
+        var el = document.getElementById("baum-test-ergebnis");
+        if (step < 6) { el.textContent = ""; return; }
+        var bp = document.getElementById("baum-bp-regler").value;
+        var age = Number(document.getElementById("baum-age-regler").value);
+        var med = klassifiziere(bp, age);
+        el.textContent = "Neuer Patient (Blood pressure=" + bp + ", Age=" + age + ") wird vom fertigen Baum Medikament " + med + " zugeordnet.";
+      }
+
       function render(step) {
         buildDatenTabelle();
         drawBaum(step);
         renderGewinnTabelle(step);
         renderEntropieInfo(step);
+        renderTestpatient(step);
 
         document.getElementById("ea-step-text").textContent = SCHRITTE[step];
         document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
@@ -581,6 +613,16 @@
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
           });
+        });
+
+        document.getElementById("baum-bp-regler").addEventListener("change", function () {
+          renderTestpatient(controller.current());
+        });
+        var ageRegler = document.getElementById("baum-age-regler");
+        var ageWert = document.getElementById("baum-age-wert");
+        ageRegler.addEventListener("input", function () {
+          ageWert.textContent = ageRegler.value;
+          renderTestpatient(controller.current());
         });
       });
     })();

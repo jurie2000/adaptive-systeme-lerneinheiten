@@ -133,6 +133,16 @@
         Merkmale, das Prinzip ist aber identisch.
       </p>
 
+      <div class="as-regler-gruppe">
+        <div class="as-regler">
+          <label for="wl-winkel-regler">Winkel von x₁ <output id="wl-winkel-wert">63°</output></label>
+          <input type="range" id="wl-winkel-regler" min="0" max="360" step="1" value="63">
+        </div>
+        <div class="as-regler">
+          <label for="wl-eta-regler">Lernrate η <output id="wl-eta-wert">0.50</output></label>
+          <input type="range" id="wl-eta-regler" min="0.1" max="1" step="0.05" value="0.5">
+        </div>
+      </div>
       <svg class="wl-svg" id="wl-svg" viewBox="-160 -160 320 320"></svg>
       <div class="wl-werte" id="wl-werte"></div>
 
@@ -384,11 +394,21 @@
         w2: norm([-1, 1]),
         w3: [0, -1]
       };
-      var X1 = norm([1, 2]);
-      var X2 = norm([1, 1.5]);
+      var X1_WINKEL = 63;
       var ETA = 0.5;
 
+      function aktuellesX1() {
+        var r = X1_WINKEL * Math.PI / 180;
+        return [Math.cos(r), Math.sin(r)];
+      }
+      function aktuellesX2() {
+        var r = (X1_WINKEL + 15) * Math.PI / 180;
+        return [Math.cos(r), Math.sin(r)];
+      }
+
       function berechneZustand(step) {
+        var X1 = aktuellesX1();
+        var X2 = aktuellesX2();
         var neuronen = { w1: START.w1.slice(), w2: START.w2.slice(), w3: START.w3.slice() };
         var akt1 = {};
         Object.keys(neuronen).forEach(function (k) { akt1[k] = dot(neuronen[k], X1); });
@@ -474,7 +494,7 @@
       }
 
       var SCHRITTE = [
-        "Drei Gewichtsvektoren w₁, w₂, w₃ liegen normiert auf dem Einheitskreis. Eine erste Eingabe x₁ trifft ein.",
+        "Drei Gewichtsvektoren w₁, w₂, w₃ liegen normiert auf dem Einheitskreis. Eine erste Eingabe x₁ trifft ein. Stellen Sie oben den Winkel von x₁ und die Lernrate η frei ein.",
         "Die Aktivität jedes Neurons ist das Skalarprodukt seines Gewichtsvektors mit x₁ – bei normierten Vektoren entspricht das dem Kosinus des eingeschlossenen Winkels.",
         "Das Neuron mit der höchsten Aktivität – dem kleinsten Winkel zu x₁ – wird zum Gewinner erklärt.",
         "Nur der Gewichtsvektor des Gewinners wird in Richtung x₁ verschoben: w_neu = w + η·x₁. Das Ergebnis liegt noch nicht auf dem Einheitskreis.",
@@ -501,6 +521,22 @@
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
           });
+        });
+
+        var winkelRegler = document.getElementById("wl-winkel-regler");
+        var winkelWert = document.getElementById("wl-winkel-wert");
+        winkelRegler.addEventListener("input", function () {
+          X1_WINKEL = Number(winkelRegler.value);
+          winkelWert.textContent = X1_WINKEL + "°";
+          controller.goTo(controller.current());
+        });
+
+        var etaRegler = document.getElementById("wl-eta-regler");
+        var etaWert = document.getElementById("wl-eta-wert");
+        etaRegler.addEventListener("input", function () {
+          ETA = Number(etaRegler.value);
+          etaWert.textContent = ETA.toFixed(2);
+          controller.goTo(controller.current());
         });
       });
     })();

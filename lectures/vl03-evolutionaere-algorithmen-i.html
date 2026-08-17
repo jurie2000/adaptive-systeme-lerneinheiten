@@ -305,9 +305,11 @@ return bestes Individuum aus letzter Generation</code></pre>
       <h2><span class="modul-nr">5</span> Animation: Der EA-Grundzyklus am TSP</h2>
       <p>
         Die Animation zeigt eine Generation des in Übung 3 verwendeten evolutionären
-        Algorithmus für sechs feste Städte (A–F). Jeder Schritt entspricht einem Baustein
-        aus Abschnitt 3. Die angezeigten Streckenlängen berechnet der Browser direkt aus
-        den Stadtkoordinaten der Legende.
+        Algorithmus für sechs Städte (A–F). Jeder Schritt entspricht einem Baustein aus
+        Abschnitt 3. Die angezeigten Streckenlängen berechnet der Browser direkt aus den
+        Stadtkoordinaten der Legende. Mit „Neue Zufallspopulation" erzeugen Sie neue
+        Städtepositionen, Touren und Mutationspunkte und beobachten den gleichen Ablauf
+        mit anderen Werten.
       </p>
 
       <div class="ea-legende">
@@ -323,6 +325,7 @@ return bestes Individuum aus letzter Generation</code></pre>
         <button class="as-button as-button--sekundaer" type="button" data-action="prev">← Zurück</button>
         <button class="as-button" type="button" data-action="next">Weiter →</button>
         <button class="as-button as-button--sekundaer" type="button" data-action="play">Abspielen</button>
+        <button class="as-button as-button--sekundaer" type="button" data-action="randomize">🔀 Neue Zufallspopulation</button>
         <span class="as-step-zaehler" id="ea-zaehler"></span>
       </div>
     </section>
@@ -570,12 +573,8 @@ return bestes Individuum aus letzter Generation</code></pre>
     (function () {
       "use strict";
 
-      var CITY_POS = { A: [20, 20], B: [80, 15], C: [90, 60], D: [55, 90], E: [15, 70], F: [50, 45] };
-
-      var P1 = ["A", "B", "C", "D", "E", "F"];
-      var P2 = ["A", "C", "E", "B", "F", "D"];
-      var P3 = ["A", "F", "B", "D", "C", "E"];
-      var P4 = ["A", "E", "D", "F", "B", "C"];
+      var STAEDTE_NAMEN = ["A", "B", "C", "D", "E", "F"];
+      var CITY_POS, P1, P2, P3, P4, C1, C2, MUT1, MUT2;
 
       function swapAt(order, i, j) {
         var copy = order.slice();
@@ -585,8 +584,38 @@ return bestes Individuum aus letzter Generation</code></pre>
         return copy;
       }
 
-      var C1 = swapAt(P2, 2, 4);
-      var C2 = swapAt(P4, 2, 4);
+      function zufallsPermutation() {
+        var arr = STAEDTE_NAMEN.slice();
+        for (var i = arr.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        }
+        return arr;
+      }
+
+      function zufallsSwapIndizes() {
+        var i = Math.floor(Math.random() * STAEDTE_NAMEN.length);
+        var j;
+        do { j = Math.floor(Math.random() * STAEDTE_NAMEN.length); } while (j === i);
+        return [i, j];
+      }
+
+      function neuWuerfeln() {
+        CITY_POS = {};
+        STAEDTE_NAMEN.forEach(function (c) {
+          CITY_POS[c] = [10 + Math.random() * 80, 10 + Math.random() * 80];
+        });
+        P1 = zufallsPermutation();
+        P2 = zufallsPermutation();
+        P3 = zufallsPermutation();
+        P4 = zufallsPermutation();
+        MUT1 = zufallsSwapIndizes();
+        MUT2 = zufallsSwapIndizes();
+        C1 = swapAt(P2, MUT1[0], MUT1[1]);
+        C2 = swapAt(P4, MUT2[0], MUT2[1]);
+      }
+
+      neuWuerfeln();
 
       function tourLength(order) {
         var total = 0;
@@ -718,8 +747,8 @@ return bestes Individuum aus letzter Generation</code></pre>
           setSlot("p2", P2, {});
           setSlot("p3", P3, {});
           setSlot("p4", P4, {});
-          setSlot("c1", C1, { hervorgehoben: true, hervorgehobeneStaedte: [C1[2], C1[4]] });
-          setSlot("c2", C2, { hervorgehoben: true, hervorgehobeneStaedte: [C2[2], C2[4]] });
+          setSlot("c1", C1, { hervorgehoben: true, hervorgehobeneStaedte: [C1[MUT1[0]], C1[MUT1[1]]] });
+          setSlot("c2", C2, { hervorgehoben: true, hervorgehobeneStaedte: [C2[MUT2[0]], C2[MUT2[1]]] });
         } else if (step === 4) {
           Object.keys(alleOrders).forEach(function (k) {
             setSlot(k, alleOrders[k], { zeigeLaenge: true });
@@ -758,6 +787,11 @@ return bestes Individuum aus letzter Generation</code></pre>
             else if (action === "prev") controller.prev();
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
+            else if (action === "randomize") {
+              neuWuerfeln();
+              drawLegende();
+              controller.reset();
+            }
           });
         });
       });

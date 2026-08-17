@@ -46,6 +46,7 @@
     .prz-punkt-0 { fill: var(--as-achtung); }
     .prz-punkt-1 { fill: var(--as-begriff); }
     .prz-linie { stroke: var(--as-akzent); stroke-width: 1.8; }
+    .prz-testpunkt { fill: none; stroke: var(--as-ablauf); stroke-width: 2; }
     .prz-text { font-size: 7px; fill: var(--as-text-gedaempft); }
     .prz-legende { font-size: 0.8rem; color: var(--as-text-gedaempft); margin: 0.4em 0 0; }
   </style>
@@ -140,6 +141,19 @@
       <div class="ea-teil" id="teil-mcp">
         <div class="ea-teil__titel">Teil A – MCP-Neuron als Logikgatter</div>
         <div class="gatter-row" id="gatter-row"></div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label><input type="checkbox" id="mcp-x1"> x₁ aktiv</label>
+          </div>
+          <div class="as-regler">
+            <label><input type="checkbox" id="mcp-x2"> x₂ aktiv</label>
+          </div>
+          <div class="as-regler">
+            <label for="mcp-s-regler">Schwellwert S <output id="mcp-s-wert">2</output></label>
+            <input type="range" id="mcp-s-regler" min="0" max="2" step="1" value="2">
+          </div>
+        </div>
+        <p class="prz-legende" id="mcp-eigenes-ergebnis"></p>
       </div>
 
       <div class="ea-teil" id="teil-hebb">
@@ -151,6 +165,17 @@
         <div class="ea-teil__titel">Teil C – Perzeptron: die wandernde Trenngerade</div>
         <svg class="prz-svg" id="prz-svg" viewBox="0 0 200 130"></svg>
         <p class="prz-legende" id="prz-gewichte"></p>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="prz-x1-regler">Testpunkt x₁ <output id="prz-x1-wert">0.00</output></label>
+            <input type="range" id="prz-x1-regler" min="-1.2" max="1.5" step="0.1" value="0">
+          </div>
+          <div class="as-regler">
+            <label for="prz-x2-regler">Testpunkt x₂ <output id="prz-x2-wert">0.50</output></label>
+            <input type="range" id="prz-x2-regler" min="-0.3" max="1.5" step="0.1" value="0.5">
+          </div>
+        </div>
+        <p class="prz-legende" id="prz-testpunkt-ergebnis"></p>
       </div>
 
       <div class="as-step-controller">
@@ -445,6 +470,15 @@
         });
       }
 
+      function renderEigenesGatter() {
+        var x1 = document.getElementById("mcp-x1").checked ? 1 : 0;
+        var x2 = document.getElementById("mcp-x2").checked ? 1 : 0;
+        var s = Number(document.getElementById("mcp-s-regler").value);
+        var o = mcp([x1, x2], [0, 1], [], s);
+        document.getElementById("mcp-eigenes-ergebnis").textContent =
+          "Eigenes Gatter: x₁=" + x1 + ", x₂=" + x2 + ", S=" + s + " → Summe=" + (x1 + x2) + " → O=" + o + (o === 1 ? " (feuert)" : " (feuert nicht)");
+      }
+
       // ---------- Teil B: Hebbsches Lernen ----------
 
       function drawHebb(staerke) {
@@ -480,6 +514,7 @@
         while (svg.firstChild) svg.removeChild(svg.firstChild);
         if (index === null) {
           document.getElementById("prz-gewichte").textContent = "";
+          document.getElementById("prz-testpunkt-ergebnis").textContent = "";
           return;
         }
         svg.appendChild(svgEl("line", { x1: xPx(X_MIN), y1: yPx(0), x2: xPx(X_MAX), y2: yPx(0), class: "prz-achse" }));
@@ -499,6 +534,24 @@
 
         document.getElementById("prz-gewichte").textContent =
           "w = (" + w.map(function (v) { return v.toFixed(2); }).join(", ") + ")  – rot: Ziel 0, blau: Ziel 1";
+
+        renderTestpunkt(w);
+      }
+
+      var AKTUELLES_W = null;
+
+      function renderTestpunkt(w) {
+        AKTUELLES_W = w;
+        var svg = document.getElementById("prz-svg");
+        var alt = svg.querySelector(".prz-testpunkt");
+        if (alt) alt.remove();
+        var tx1 = Number(document.getElementById("prz-x1-regler").value);
+        var tx2 = Number(document.getElementById("prz-x2-regler").value);
+        svg.appendChild(svgEl("circle", { cx: xPx(tx1), cy: yPx(tx2), r: 4.5, class: "prz-testpunkt" }));
+        var netz = w[0] + w[1] * tx1 + w[2] * tx2;
+        var ausgabe = netz >= 0 ? 1 : 0;
+        document.getElementById("prz-testpunkt-ergebnis").textContent =
+          "Testpunkt (" + tx1.toFixed(2) + ", " + tx2.toFixed(2) + "): netz = " + netz.toFixed(2) + " → Ausgabe " + ausgabe + (ausgabe === 1 ? " (blaue Seite)" : " (rote Seite)");
       }
 
       // ---------- Schrittsteuerung ----------
@@ -558,6 +611,29 @@
             else if (action === "prev") controller.prev();
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
+          });
+        });
+
+        renderEigenesGatter();
+        ["mcp-x1", "mcp-x2"].forEach(function (id) {
+          document.getElementById(id).addEventListener("change", renderEigenesGatter);
+        });
+        var sRegler = document.getElementById("mcp-s-regler");
+        var sWert = document.getElementById("mcp-s-wert");
+        sRegler.addEventListener("input", function () {
+          sWert.textContent = sRegler.value;
+          renderEigenesGatter();
+        });
+
+        var x1Regler = document.getElementById("prz-x1-regler");
+        var x1Wert = document.getElementById("prz-x1-wert");
+        var x2Regler = document.getElementById("prz-x2-regler");
+        var x2Wert = document.getElementById("prz-x2-wert");
+        [x1Regler, x2Regler].forEach(function (regler) {
+          regler.addEventListener("input", function () {
+            x1Wert.textContent = Number(x1Regler.value).toFixed(2);
+            x2Wert.textContent = Number(x2Regler.value).toFixed(2);
+            if (AKTUELLES_W) renderTestpunkt(AKTUELLES_W);
           });
         });
       });

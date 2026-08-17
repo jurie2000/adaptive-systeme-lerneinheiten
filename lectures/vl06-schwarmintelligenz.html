@@ -187,11 +187,27 @@
 
       <div class="ea-teil" id="teil-pso">
         <div class="ea-teil__titel">Teil A – Partikelschwarmoptimierung</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="pso-ziel-regler">Zielwert (Optimum) <output id="pso-ziel-wert">3</output></label>
+            <input type="range" id="pso-ziel-regler" min="0" max="9" step="1" value="3">
+          </div>
+        </div>
         <svg class="pso-svg" id="pso-svg" viewBox="0 0 200 90"></svg>
       </div>
 
       <div class="ea-teil" id="teil-aco">
         <div class="ea-teil__titel">Teil B – Ameisenkolonie-Optimierung</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="aco-alpha-regler">α (Pheromon-Gewicht) <output id="aco-alpha-wert">1.0</output></label>
+            <input type="range" id="aco-alpha-regler" min="0" max="3" step="0.5" value="1">
+          </div>
+          <div class="as-regler">
+            <label for="aco-beta-regler">β (Heuristik-Gewicht) <output id="aco-beta-wert">1.0</output></label>
+            <input type="range" id="aco-beta-regler" min="0" max="3" step="0.5" value="1">
+          </div>
+        </div>
         <svg class="aco-svg" id="aco-svg" viewBox="0 0 100 100"></svg>
         <div class="aco-tabellenwrapper">
           <table class="aco-tabelle" id="aco-tabelle"></table>
@@ -442,7 +458,9 @@
 
       // ---------- Teil A: PSO ----------
 
-      function fPso(x) { return Math.abs(x - 3); }
+      var PSO_ZIEL = 3;
+
+      function fPso(x) { return Math.abs(x - PSO_ZIEL); }
 
       function simuliereFolge() {
         var w = 0.4, cl = 0.5, cg = 0.5, rl = 0.5, rg = 0.5;
@@ -469,8 +487,8 @@
         var svg = document.getElementById("pso-svg");
         while (svg.firstChild) svg.removeChild(svg.firstChild);
         svg.appendChild(svgEl("line", { x1: xToPx(0), y1: 60, x2: xToPx(10), y2: 60, class: "pso-achse" }));
-        svg.appendChild(svgEl("line", { x1: xToPx(3), y1: 20, x2: xToPx(3), y2: 80, class: "pso-ziel" }));
-        svg.appendChild(svgEl("text", { x: xToPx(3), y: 15, class: "pso-text" })).textContent = "Optimum x=3";
+        svg.appendChild(svgEl("line", { x1: xToPx(PSO_ZIEL), y1: 20, x2: xToPx(PSO_ZIEL), y2: 80, class: "pso-ziel" }));
+        svg.appendChild(svgEl("text", { x: xToPx(PSO_ZIEL), y: 15, class: "pso-text" })).textContent = "Optimum x=" + PSO_ZIEL;
 
         var idx = Math.min(step, PSO_FOLGE.length - 1);
         for (var t = 0; t <= idx; t++) {
@@ -622,30 +640,33 @@
 
       // ---------- Schrittsteuerung ----------
 
-      var SCHRITTE = [
-        "Zwei Partikel starten weit auseinander auf der Zahlengeraden – Ziel ist das Minimum von f(x) = |x−3| bei x = 3.",
-        "Nach einem Aktualisierungsschritt bewegt sich das rechte Partikel bereits deutlich in Richtung des bisher besten gefundenen Werts.",
-        "Nach einem weiteren Schritt nähert sich das rechte Partikel dem Optimum weiter an, während das linke Partikel noch an seinem bisherigen besten Wert festhält.",
-        "Jetzt beginnt sich auch das linke Partikel zu bewegen – gezogen vom besten Wert des gesamten Schwarms.",
-        "Beide Partikel kreisen das Optimum bei x = 3 zunehmend ein.",
-        "Nach wenigen weiteren Schritten pendeln sich beide Partikel nahe dem Optimum ein. Der Trägheitsparameter w steuert dabei die Balance: w > 1 lässt die Partikel eher divergieren, w < 1 – wie hier verwendet – führt zu dieser Konvergenz.",
-        "Für die Ameisenkolonie-Optimierung dient derselbe Städtegraph wie in den vorigen Modulen. Jede Kante von Stadt A aus hat einen Anfangs-Pheromonwert τ und eine aus dem Abstand berechnete heuristische Information ν = 1/d.",
-        "Aus Pheromon- und heuristischem Wert berechnet sich für jede Kante von A aus eine Auswahlwahrscheinlichkeit p – hervorgehoben ist die Kante mit der höchsten Wahrscheinlichkeit.",
-        "Eine Ameise wählt ihren nächsten Schritt mit genau dieser Wahrscheinlichkeit – hier fällt die Wahl mit hoher Wahrscheinlichkeit auf die hervorgehobene Kante.",
-        "Nachdem alle Ameisen ihre Wege berechnet haben, werden die Pheromonwerte aktualisiert: Alte Pheromone verdunsten anteilig, auf dem bisher besten gefundenen Weg kommen neue hinzu – der Tabellenwert für τ steigt entsprechend.",
-        "Die Stochastic Diffusion Search verteilt vier Agenten auf vier Hypothesen – hier vier Hügel mit unterschiedlichem, noch unbekanntem Goldgehalt.",
-        "In der Testphase prüft jeder Agent seine Hypothese anhand einer Stichprobe. Agent 2 und Agent 4 akzeptieren ihre Hypothese, Agent 1 und Agent 3 verwerfen ihre als unzureichend.",
-        "In der Streuphase übernehmen die verwerfenden Agenten die Hypothese eines zufällig gewählten, aktiven Agenten – Agent 1 übernimmt Hügel 2, Agent 3 übernimmt Hügel 4.",
-        "Nach mehreren weiteren Wiederholungen dieses Zyklus setzt sich die Hypothese mit dem tatsächlich höchsten Gütewert zunehmend durch, da sie in der Testphase am zuverlässigsten akzeptiert wird – am Ende gilt die von den meisten Agenten unterstützte Hypothese als Lösung."
-      ];
+      function baueSchritte() {
+        return [
+          "Zwei Partikel starten weit auseinander auf der Zahlengeraden – Ziel ist das Minimum von f(x) = |x−" + PSO_ZIEL + "| bei x = " + PSO_ZIEL + ". Stellen Sie den Zielwert oben frei ein.",
+          "Nach einem Aktualisierungsschritt bewegt sich das rechte Partikel bereits deutlich in Richtung des bisher besten gefundenen Werts.",
+          "Nach einem weiteren Schritt nähert sich das rechte Partikel dem Optimum weiter an, während das linke Partikel noch an seinem bisherigen besten Wert festhält.",
+          "Jetzt beginnt sich auch das linke Partikel zu bewegen – gezogen vom besten Wert des gesamten Schwarms.",
+          "Beide Partikel kreisen das Optimum bei x = " + PSO_ZIEL + " zunehmend ein.",
+          "Nach wenigen weiteren Schritten pendeln sich beide Partikel nahe dem Optimum ein. Der Trägheitsparameter w steuert dabei die Balance: w > 1 lässt die Partikel eher divergieren, w < 1 – wie hier verwendet – führt zu dieser Konvergenz.",
+          "Für die Ameisenkolonie-Optimierung dient derselbe Städtegraph wie in den vorigen Modulen. Jede Kante von Stadt A aus hat einen Anfangs-Pheromonwert τ und eine aus dem Abstand berechnete heuristische Information ν = 1/d.",
+          "Aus Pheromon- und heuristischem Wert berechnet sich für jede Kante von A aus eine Auswahlwahrscheinlichkeit p – hervorgehoben ist die Kante mit der höchsten Wahrscheinlichkeit. Stellen Sie α und β oben frei ein, um ihren Einfluss auf p zu beobachten.",
+          "Eine Ameise wählt ihren nächsten Schritt mit genau dieser Wahrscheinlichkeit – hier fällt die Wahl mit hoher Wahrscheinlichkeit auf die hervorgehobene Kante.",
+          "Nachdem alle Ameisen ihre Wege berechnet haben, werden die Pheromonwerte aktualisiert: Alte Pheromone verdunsten anteilig, auf dem bisher besten gefundenen Weg kommen neue hinzu – der Tabellenwert für τ steigt entsprechend.",
+          "Die Stochastic Diffusion Search verteilt vier Agenten auf vier Hypothesen – hier vier Hügel mit unterschiedlichem, noch unbekanntem Goldgehalt.",
+          "In der Testphase prüft jeder Agent seine Hypothese anhand einer Stichprobe. Agent 2 und Agent 4 akzeptieren ihre Hypothese, Agent 1 und Agent 3 verwerfen ihre als unzureichend.",
+          "In der Streuphase übernehmen die verwerfenden Agenten die Hypothese eines zufällig gewählten, aktiven Agenten – Agent 1 übernimmt Hügel 2, Agent 3 übernimmt Hügel 4.",
+          "Nach mehreren weiteren Wiederholungen dieses Zyklus setzt sich die Hypothese mit dem tatsächlich höchsten Gütewert zunehmend durch, da sie in der Testphase am zuverlässigsten akzeptiert wird – am Ende gilt die von den meisten Agenten unterstützte Hypothese als Lösung."
+        ];
+      }
 
       function render(step) {
         renderPso(Math.min(step, 5));
         drawAco(step >= 6 ? Math.min(step - 6, 3) : -1);
         setSds(step >= 10 ? step - 10 : -1);
 
-        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
-        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+        var schritte = baueSchritte();
+        document.getElementById("ea-step-text").textContent = schritte[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + schritte.length;
       }
 
       document.addEventListener("DOMContentLoaded", function () {
@@ -657,7 +678,7 @@
         }
 
         var controller = window.ASModule.createStepController({
-          stepCount: SCHRITTE.length,
+          stepCount: 14,
           onRender: render
         });
 
@@ -669,6 +690,31 @@
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
           });
+        });
+
+        var zielRegler = document.getElementById("pso-ziel-regler");
+        var zielWert = document.getElementById("pso-ziel-wert");
+        zielRegler.addEventListener("input", function () {
+          PSO_ZIEL = Number(zielRegler.value);
+          zielWert.textContent = PSO_ZIEL;
+          PSO_FOLGE = simuliereFolge();
+          controller.goTo(controller.current());
+        });
+
+        var alphaRegler = document.getElementById("aco-alpha-regler");
+        var alphaWert = document.getElementById("aco-alpha-wert");
+        alphaRegler.addEventListener("input", function () {
+          ALPHA = Number(alphaRegler.value);
+          alphaWert.textContent = ALPHA.toFixed(1);
+          controller.goTo(controller.current());
+        });
+
+        var betaRegler = document.getElementById("aco-beta-regler");
+        var betaWert = document.getElementById("aco-beta-wert");
+        betaRegler.addEventListener("input", function () {
+          BETA = Number(betaRegler.value);
+          betaWert.textContent = BETA.toFixed(1);
+          controller.goTo(controller.current());
         });
       });
     })();

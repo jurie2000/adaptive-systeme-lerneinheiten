@@ -296,6 +296,45 @@ hr {
   letter-spacing: 0.02em;
 }
 
+/* Werte-Regler für interaktive Module */
+
+.as-regler-gruppe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--as-abstand-l);
+  padding: var(--as-abstand-m);
+  background: var(--as-flaeche-erhoeht);
+  border: 1px solid var(--as-rahmen);
+  border-radius: var(--as-radius-m);
+  margin-bottom: var(--as-abstand-m);
+}
+
+.as-regler {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  flex: 1 1 200px;
+}
+
+.as-regler label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--as-text);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+
+.as-regler output {
+  color: var(--as-akzent);
+  font-variant-numeric: tabular-nums;
+}
+
+.as-regler input[type="range"] {
+  width: 100%;
+  accent-color: var(--as-akzent);
+}
+
 /* Schrittsteuerung für Animationen */
 
 .as-step-controller {

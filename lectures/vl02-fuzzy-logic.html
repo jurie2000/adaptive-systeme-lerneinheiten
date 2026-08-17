@@ -112,11 +112,23 @@
       <h2><span class="modul-nr">5</span> Animation: Fuzzifizierung → Regelauswertung → Defuzzifizierung</h2>
       <p>
         Die Animation nutzt dieselben vier Zugehörigkeitsfunktionen und dieselben vier
-        Regeln wie das Schwimmbad-Beispiel aus Übung 2 – hier allerdings mit
-        T = 24&nbsp;°C und T<sub>S</sub> = 28&nbsp;°C, bewusst andere Werte als in der
-        eigentlichen Übungsaufgabe (T = 26&nbsp;°C), damit Sie diese weiterhin selbst
-        nachrechnen können.
+        Regeln wie das Schwimmbad-Beispiel aus Übung 2. Stellen Sie T und T<sub>S</sub>
+        über die Regler frei ein und beobachten Sie, wie sich Fuzzifizierung,
+        Regelauswertung und Defuzzifizierung live ändern. Für die Übungsaufgabe (Aufgabe
+        2.2) stellen Sie T = 26&nbsp;°C und T<sub>S</sub> = 28&nbsp;°C ein und rechnen das
+        Ergebnis selbst nach.
       </p>
+
+      <div class="as-regler-gruppe">
+        <div class="as-regler">
+          <label for="fz-t-regler">Wassertemperatur T <output id="fz-t-wert">24</output>&nbsp;°C</label>
+          <input type="range" id="fz-t-regler" min="0" max="60" step="1" value="24">
+        </div>
+        <div class="as-regler">
+          <label for="fz-ts-regler">Solltemperatur T<sub>S</sub> <output id="fz-ts-wert">28</output>&nbsp;°C</label>
+          <input type="range" id="fz-ts-regler" min="0" max="60" step="1" value="28">
+        </div>
+      </div>
 
       <div class="fz-charts">
         <div class="fz-chart">
@@ -397,6 +409,17 @@
 
       var T = 24, TS = 28;
 
+      var TERME = [["kalt", kalt], ["lauwarm", lau], ["warm", warm], ["heiß", heiss]];
+
+      function termeAktiv(x, kurz) {
+        var teile = [];
+        TERME.forEach(function (t) {
+          var v = t[1](x);
+          if (v > 0.001) teile.push(kurz ? t[0] + ":" + v.toFixed(2) : t[0] + " (" + v.toFixed(2) + ")");
+        });
+        return teile.length ? teile.join(kurz ? " " : ", ") : (kurz ? "–" : "keinem Term (Randbereich)");
+      }
+
       var EINGABE_X_MIN = 0, EINGABE_X_MAX = 60;
       var AUSGABE_X_MIN = -2, AUSGABE_X_MAX = 2;
 
@@ -475,9 +498,9 @@
 
         if (step >= 1) {
           eingabeSvg.appendChild(svgEl("text", { x: 15, y: 100, class: "fz-text" })).textContent =
-            "μ_lau(T)=" + lau(T).toFixed(2) + " μ_warm(T)=" + warm(T).toFixed(2);
+            "T: " + termeAktiv(T, true);
           eingabeSvg.appendChild(svgEl("text", { x: 15, y: 110, class: "fz-text" })).textContent =
-            "μ_lau(Ts)=" + lau(TS).toFixed(2) + " μ_warm(Ts)=" + warm(TS).toFixed(2);
+            "Ts: " + termeAktiv(TS, true);
         }
 
         var praem = praemissen();
@@ -515,23 +538,27 @@
         if (step >= 5) {
           var sp = schwerpunkt(praem);
           ausgabeSvg.appendChild(svgEl("circle", { cx: xPx(sp, AUSGABE_X_MIN, AUSGABE_X_MAX), cy: yPx(aggregiertesY(sp, praem)), r: 3.5, class: "fz-centroid" }));
-          ergebnisEl.textContent = "Defuzzifiziert (Schwerpunkt): ΔT ≈ " + sp.toFixed(2) + " (Beispielwerte, nicht die Übungsaufgabe)";
+          ergebnisEl.textContent = "Defuzzifiziert (Schwerpunkt): ΔT ≈ " + sp.toFixed(2) + " für T = " + T + " °C, Ts = " + TS + " °C";
         } else {
           ergebnisEl.textContent = "";
         }
 
-        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
-        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+        var schritte = baueSchritte(praem);
+        document.getElementById("ea-step-text").textContent = schritte[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + schritte.length;
       }
 
-      var SCHRITTE = [
-        "Für das Schwimmbad-Beispiel aus Übung 2 gibt es vier Zugehörigkeitsfunktionen für die Wassertemperatur T und die Solltemperatur Ts: kalt, lauwarm, warm und heiß. Betrachtet werden hier T = 24 °C und Ts = 28 °C – andere Werte als in der eigentlichen Übungsaufgabe.",
-        "Die Fuzzifizierung berechnet für T und Ts die Zugehörigkeitsgrade zu den betroffenen Termen – T ist hier nur teilweise „lauwarm“, während Ts sowohl teilweise „lauwarm“ als auch teilweise „warm“ ist.",
-        "Für jede der vier Regeln aus Übung 2 wird die Prämisse ausgewertet: Das UND wird als Minimum der beiden Zugehörigkeitsgrade berechnet. Zwei Regeln sind hier teilweise aktiv (hervorgehoben).",
-        "Die aktiven Regeln schneiden ihre jeweilige Folgerung – die Zugehörigkeitsfunktion von „Null“ bzw. „positiv“ für die Temperaturänderung – auf Höhe ihres Prämissenwerts ab (Implikation).",
-        "Die beschnittenen Flächen aller Regeln werden zu einer gemeinsamen Fläche zusammengefasst – dem Maximum an jeder Stelle (Aggregation).",
-        "Der Schwerpunkt dieser Fläche liefert die scharfe Ausgabe: die empfohlene Temperaturänderung für dieses Beispiel."
-      ];
+      function baueSchritte(praem) {
+        var aktiveAnzahl = praem.filter(function (p) { return p > 0; }).length;
+        return [
+          "Für das Schwimmbad-Beispiel aus Übung 2 gibt es vier Zugehörigkeitsfunktionen für die Wassertemperatur T und die Solltemperatur Ts: kalt, lauwarm, warm und heiß. Betrachtet werden aktuell T = " + T + " °C und Ts = " + TS + " °C – stellen Sie diese über die Regler oben frei ein.",
+          "Die Fuzzifizierung berechnet für T die Zugehörigkeitsgrade zu " + termeAktiv(T) + ", für Ts zu " + termeAktiv(TS) + ".",
+          "Für jede der vier Regeln aus Übung 2 wird die Prämisse ausgewertet: Das UND wird als Minimum der beiden Zugehörigkeitsgrade berechnet. " + aktiveAnzahl + " von 4 Regeln sind hier (teilweise) aktiv (hervorgehoben).",
+          "Die aktiven Regeln schneiden ihre jeweilige Folgerung – die Zugehörigkeitsfunktion des jeweiligen ΔT-Terms – auf Höhe ihres Prämissenwerts ab (Implikation).",
+          "Die beschnittenen Flächen aller Regeln werden zu einer gemeinsamen Fläche zusammengefasst – dem Maximum an jeder Stelle (Aggregation).",
+          "Der Schwerpunkt dieser Fläche liefert die scharfe Ausgabe: die empfohlene Temperaturänderung für die aktuell eingestellten Werte."
+        ];
+      }
 
       document.addEventListener("DOMContentLoaded", function () {
         if (window.ASModule) {
@@ -540,7 +567,7 @@
         }
 
         var controller = window.ASModule.createStepController({
-          stepCount: SCHRITTE.length,
+          stepCount: 6,
           onRender: render
         });
 
@@ -552,6 +579,22 @@
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
           });
+        });
+
+        var tRegler = document.getElementById("fz-t-regler");
+        var tsRegler = document.getElementById("fz-ts-regler");
+        var tWert = document.getElementById("fz-t-wert");
+        var tsWert = document.getElementById("fz-ts-wert");
+
+        tRegler.addEventListener("input", function () {
+          T = Number(tRegler.value);
+          tWert.textContent = T;
+          controller.goTo(controller.current());
+        });
+        tsRegler.addEventListener("input", function () {
+          TS = Number(tsRegler.value);
+          tsWert.textContent = TS;
+          controller.goTo(controller.current());
         });
       });
     })();

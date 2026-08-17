@@ -352,6 +352,9 @@
 
       <div class="ea-teil" id="teil-mutation">
         <div class="ea-teil__titel">Teil A – Mutation</div>
+        <div class="as-regler-gruppe">
+          <button class="as-button as-button--sekundaer" type="button" data-action="wuerfeln">🔀 Neue Ausgangsreise</button>
+        </div>
         <div class="ea-tsp-row" id="ea-tsp-row"></div>
         <div class="ea-pool" id="ea-pool">
           <span style="align-self:center; font-size:0.8rem; color:var(--as-text-gedaempft);">Operatorenpool:</span>
@@ -360,11 +363,23 @@
 
       <div class="ea-teil" id="teil-rekombination">
         <div class="ea-teil__titel">Teil B – Rekombination</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="ea-alpha-regler">Mischungsfaktor α (intermediäre Rekombination) <output id="ea-alpha-wert">0.50</output></label>
+            <input type="range" id="ea-alpha-regler" min="0" max="1" step="0.05" value="0.5">
+          </div>
+        </div>
         <div id="ea-vektoren"></div>
       </div>
 
       <div class="ea-teil" id="teil-selektion">
         <div class="ea-teil__titel">Teil C – Selektionsdruck (Turnierselektion)</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="ea-q-regler">Turniergröße q <output id="ea-q-wert">2</output></label>
+            <input type="range" id="ea-q-regler" min="1" max="7" step="1" value="2">
+          </div>
+        </div>
         <div class="ea-bar-row" id="ea-bars"></div>
         <p style="font-size:0.8rem; color:var(--as-text-gedaempft); margin:0;" id="ea-selektion-label"></p>
       </div>
@@ -610,8 +625,8 @@
 
       // ---------- Teil A: Mutation am TSP ----------
 
-      var CITY_POS = { A: [20, 20], B: [80, 15], C: [90, 60], D: [55, 90], E: [15, 70], F: [50, 45] };
-      var BASIS = ["A", "B", "C", "D", "E", "F"];
+      var STAEDTE_NAMEN = ["A", "B", "C", "D", "E", "F"];
+      var CITY_POS, BASIS, VERTAUSCHT, INVERTIERT, VERSCHOBEN, SWAP_IDX, INVERT_RANGE, MOVE_PARAMS;
 
       function swapAt(order, i, j) {
         var c = order.slice();
@@ -631,9 +646,43 @@
         return c;
       }
 
-      var VERTAUSCHT = swapAt(BASIS, 1, 4);
-      var INVERTIERT = invertRange(BASIS, 1, 3);
-      var VERSCHOBEN = moveTo(BASIS, 4, 1);
+      function zufallsPermutation() {
+        var arr = STAEDTE_NAMEN.slice();
+        for (var i = arr.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        }
+        return arr;
+      }
+
+      function zweiDistinkteIndizes(n) {
+        var i = Math.floor(Math.random() * n);
+        var j;
+        do { j = Math.floor(Math.random() * n); } while (j === i);
+        return [i, j];
+      }
+
+      function zufallsBereich(n) {
+        var i = Math.floor(Math.random() * (n - 1));
+        var j = i + 1 + Math.floor(Math.random() * (n - 1 - i));
+        return [i, j];
+      }
+
+      function neueAusgangsreise() {
+        CITY_POS = {};
+        STAEDTE_NAMEN.forEach(function (c) {
+          CITY_POS[c] = [10 + Math.random() * 80, 10 + Math.random() * 80];
+        });
+        BASIS = zufallsPermutation();
+        SWAP_IDX = zweiDistinkteIndizes(BASIS.length);
+        INVERT_RANGE = zufallsBereich(BASIS.length);
+        MOVE_PARAMS = zweiDistinkteIndizes(BASIS.length);
+        VERTAUSCHT = swapAt(BASIS, SWAP_IDX[0], SWAP_IDX[1]);
+        INVERTIERT = invertRange(BASIS, INVERT_RANGE[0], INVERT_RANGE[1]);
+        VERSCHOBEN = moveTo(BASIS, MOVE_PARAMS[0], MOVE_PARAMS[1]);
+      }
+
+      neueAusgangsreise();
 
       function tourLength(order) {
         var total = 0;
@@ -663,17 +712,23 @@
         });
       }
 
-      var tspSlots = [
-        { id: "basis", label: "Ausgangsreise", order: BASIS },
-        { id: "vertauscht", label: "Vertauschend", order: VERTAUSCHT },
-        { id: "invertiert", label: "Invertierend", order: INVERTIERT },
-        { id: "verschoben", label: "Verschiebend", order: VERSCHOBEN }
-      ];
+      function tspSlotsConfig() {
+        return [
+          { id: "basis", label: "Ausgangsreise", order: BASIS },
+          { id: "vertauscht", label: "Vertauschend", order: VERTAUSCHT },
+          { id: "invertiert", label: "Invertierend", order: INVERTIERT },
+          { id: "verschoben", label: "Verschiebend", order: VERSCHOBEN }
+        ];
+      }
       var tspSlotEls = {};
 
       function buildTspSlots() {
         var row = document.getElementById("ea-tsp-row");
-        tspSlots.forEach(function (cfg) {
+        row.innerHTML = "";
+        var pool = document.getElementById("ea-pool");
+        pool.querySelectorAll("svg").forEach(function (el) { el.remove(); });
+        tspSlotEls = {};
+        tspSlotsConfig().forEach(function (cfg) {
           var wrap = document.createElement("div");
           wrap.className = "ea-slot";
           var svg = svgEl("svg", { viewBox: "0 0 100 100", class: "ea-slot__svg" });
@@ -730,6 +785,8 @@
         return p1.map(function (v, i) { return alpha * v + (1 - alpha) * p2[i]; });
       }
 
+      var ALPHA = 0.5;
+
       var vektorRows = {};
 
       function buildVektorRows() {
@@ -774,8 +831,18 @@
       // ---------- Teil C: Selektionsdruck ----------
 
       var POPULATION = [0.1, 0.2, 0.4, 0.4, 0.6, 0.7, 0.9];
-      var ZIEHUNG_KLEIN = [2, 5];
-      var ZIEHUNG_GROSS = [0, 2, 3, 4, 6];
+      var Q = 2;
+
+      function zufallsZiehung(q) {
+        var idx = [];
+        while (idx.length < q) {
+          var r = Math.floor(Math.random() * POPULATION.length);
+          if (idx.indexOf(r) === -1) idx.push(r);
+        }
+        return idx.sort(function (a, b) { return a - b; });
+      }
+
+      var ZIEHUNG = zufallsZiehung(Q);
       var barEls = [];
 
       function buildBars() {
@@ -817,19 +884,24 @@
 
       // ---------- Schrittsteuerung ----------
 
-      var SCHRITTE = [
-        "Ausgangspunkt ist dieselbe Rundreise A-B-C-D-E-F wie in VL 03. Drei unterschiedliche Mutationsoperatoren werden im Folgenden auf genau diese eine Ausgangsreise angewendet, damit ihre Wirkung direkt vergleichbar ist.",
-        "Die vertauschende Mutation tauscht zwei Städte in der Reihenfolge – hier Stadt B und Stadt E.",
-        "Die invertierende Mutation kehrt die Reihenfolge eines zusammenhängenden Teilabschnitts um – hier den Abschnitt von Stadt B bis Stadt D.",
-        "Die verschiebende Mutation verschiebt eine einzelne Stadt an eine andere Stelle der Reihenfolge – hier wandert Stadt E an die zweite Position.",
-        "Im direkten Vergleich erzeugen alle drei Operatoren aus derselben Ausgangsreise drei unterschiedliche Nachbarn im Lösungsraum – jeder Operator erreicht andere neue Rundreisen.",
-        "Wird immer nur ein einziger Operator verwendet, kann der Algorithmus dauerhaft nur die Nachbarn erreichen, die genau dieser eine Operator erzeugen kann – bestimmte bessere Rundreisen bleiben ihm unerreichbar. Übung 4 empfiehlt deshalb, den Operator bei jeder Mutation zufällig aus einem Pool zu wählen.",
-        "Auch bei der Rekombination gibt es diese Wahl. Zwei Beispiel-Elternvektoren aus der Vorlesung werden nun mit zwei verschiedenen Verfahren rekombiniert.",
-        "Die diskrete Rekombination übernimmt jede Eigenschaft komplett von einem der beiden Eltern – hier mit Wechselpunkten nach der ersten und der dritten Stelle.",
-        "Die intermediäre Rekombination bildet für jede Eigenschaft stattdessen den gewichteten Mittelwert der Eltern – hier den einfachen Mittelwert mit α = 0,5, live berechnet.",
-        "Auch die Selektion kennt unterschiedlich starken Druck. Bei der Turnierselektion mit kleinem q gewinnt hier ein eher mittelmäßiges Individuum, weil nur wenige zufällige Individuen zur Auswahl standen.",
-        "Bei größerem q aus derselben Population gewinnt zuverlässiger das insgesamt beste Individuum – der Selektionsdruck ist höher, doch die Diversität der Population sinkt dabei. Für Rekombination, Mutation und Selektion gilt derselbe Grundsatz: Es gibt nicht den einen richtigen Operator, sondern nur eine für das jeweilige Problem passende Kombination."
-      ];
+      function baueSchritte() {
+        var vertauschtStaedte = [BASIS[SWAP_IDX[0]], BASIS[SWAP_IDX[1]]];
+        var invertiertStaedte = BASIS.slice(INVERT_RANGE[0], INVERT_RANGE[1] + 1);
+        var verschobeneStadt = BASIS[MOVE_PARAMS[0]];
+        return [
+          "Ausgangspunkt ist die Rundreise " + BASIS.join("-") + ". Drei unterschiedliche Mutationsoperatoren werden im Folgenden auf genau diese eine Ausgangsreise angewendet, damit ihre Wirkung direkt vergleichbar ist. Mit „Neue Ausgangsreise“ würfeln Sie andere Städte und Touren.",
+          "Die vertauschende Mutation tauscht zwei Städte in der Reihenfolge – hier Stadt " + vertauschtStaedte[0] + " und Stadt " + vertauschtStaedte[1] + ".",
+          "Die invertierende Mutation kehrt die Reihenfolge eines zusammenhängenden Teilabschnitts um – hier den Abschnitt von Stadt " + invertiertStaedte[0] + " bis Stadt " + invertiertStaedte[invertiertStaedte.length - 1] + ".",
+          "Die verschiebende Mutation verschiebt eine einzelne Stadt an eine andere Stelle der Reihenfolge – hier wandert Stadt " + verschobeneStadt + " an eine neue Position.",
+          "Im direkten Vergleich erzeugen alle drei Operatoren aus derselben Ausgangsreise drei unterschiedliche Nachbarn im Lösungsraum – jeder Operator erreicht andere neue Rundreisen.",
+          "Wird immer nur ein einziger Operator verwendet, kann der Algorithmus dauerhaft nur die Nachbarn erreichen, die genau dieser eine Operator erzeugen kann – bestimmte bessere Rundreisen bleiben ihm unerreichbar. Übung 4 empfiehlt deshalb, den Operator bei jeder Mutation zufällig aus einem Pool zu wählen.",
+          "Auch bei der Rekombination gibt es diese Wahl. Zwei Beispiel-Elternvektoren aus der Vorlesung werden nun mit zwei verschiedenen Verfahren rekombiniert.",
+          "Die diskrete Rekombination übernimmt jede Eigenschaft komplett von einem der beiden Eltern – hier mit Wechselpunkten nach der ersten und der dritten Stelle.",
+          "Die intermediäre Rekombination bildet für jede Eigenschaft stattdessen den gewichteten Mittelwert der Eltern – stellen Sie α oben frei ein (aktuell α = " + ALPHA.toFixed(2) + ") und beobachten Sie, wie sich das Kind live zwischen Elter 1 (α=1) und Elter 2 (α=0) verschiebt.",
+          "Auch die Selektion kennt unterschiedlich starken Druck. Stellen Sie die Turniergröße q oben ein: Bei kleinem q kann auch ein eher mittelmäßiges Individuum gewinnen, weil nur wenige zufällige Individuen zur Auswahl standen. Aktuelle Ziehung: q=" + Q + ".",
+          "Bei größerem q gewinnt zuverlässiger das insgesamt beste Individuum – der Selektionsdruck steigt, doch die Diversität der Population sinkt dabei. Für Rekombination, Mutation und Selektion gilt derselbe Grundsatz: Es gibt nicht den einen richtigen Operator, sondern nur eine für das jeweilige Problem passende Kombination."
+        ];
+      }
 
       function render(step) {
         // Teil A
@@ -840,16 +912,16 @@
           setTspSlot("verschoben", VERSCHOBEN, { versteckt: true });
         } else if (step === 1) {
           setTspSlot("basis", BASIS, { zeigeLaenge: true });
-          setTspSlot("vertauscht", VERTAUSCHT, { zeigeLaenge: true, hervorgehoben: true, hervorStaedte: ["B", "E"] });
+          setTspSlot("vertauscht", VERTAUSCHT, { zeigeLaenge: true, hervorgehoben: true, hervorStaedte: [BASIS[SWAP_IDX[0]], BASIS[SWAP_IDX[1]]] });
           setTspSlot("invertiert", INVERTIERT, { versteckt: true });
           setTspSlot("verschoben", VERSCHOBEN, { versteckt: true });
         } else if (step === 2) {
           setTspSlot("vertauscht", VERTAUSCHT, { zeigeLaenge: true });
-          setTspSlot("invertiert", INVERTIERT, { zeigeLaenge: true, hervorgehoben: true, hervorStaedte: ["B", "C", "D"] });
+          setTspSlot("invertiert", INVERTIERT, { zeigeLaenge: true, hervorgehoben: true, hervorStaedte: BASIS.slice(INVERT_RANGE[0], INVERT_RANGE[1] + 1) });
           setTspSlot("verschoben", VERSCHOBEN, { versteckt: true });
         } else if (step >= 3) {
           setTspSlot("invertiert", INVERTIERT, { zeigeLaenge: true });
-          setTspSlot("verschoben", VERSCHOBEN, { zeigeLaenge: true, hervorgehoben: step === 3, hervorStaedte: ["E"] });
+          setTspSlot("verschoben", VERSCHOBEN, { zeigeLaenge: true, hervorgehoben: step === 3, hervorStaedte: [BASIS[MOVE_PARAMS[0]]] });
         }
         document.getElementById("ea-pool").dataset.aktiv = step >= 5 ? "true" : "false";
 
@@ -864,16 +936,16 @@
           renderVektor("diskret", kd.werte, kd.herkunft.map(function (q) { return "p" + q; }));
         }
         if (step >= 8) {
-          renderVektor("intermediaer", intermediaeresKind(P1V, P2V, 0.5), null);
+          renderVektor("intermediaer", intermediaeresKind(P1V, P2V, ALPHA), null);
         }
 
         // Teil C
         if (step < 9) setSelektion(null);
-        else if (step === 9) setSelektion(ZIEHUNG_KLEIN);
-        else setSelektion(ZIEHUNG_GROSS);
+        else setSelektion(ZIEHUNG);
 
-        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
-        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+        var schritte = baueSchritte();
+        document.getElementById("ea-step-text").textContent = schritte[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + schritte.length;
       }
 
       document.addEventListener("DOMContentLoaded", function () {
@@ -887,7 +959,7 @@
         }
 
         var controller = window.ASModule.createStepController({
-          stepCount: SCHRITTE.length,
+          stepCount: 11,
           onRender: render
         });
 
@@ -898,7 +970,29 @@
             else if (action === "prev") controller.prev();
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
+            else if (action === "wuerfeln") {
+              neueAusgangsreise();
+              buildTspSlots();
+              controller.reset();
+            }
           });
+        });
+
+        var alphaRegler = document.getElementById("ea-alpha-regler");
+        var alphaWert = document.getElementById("ea-alpha-wert");
+        alphaRegler.addEventListener("input", function () {
+          ALPHA = Number(alphaRegler.value);
+          alphaWert.textContent = ALPHA.toFixed(2);
+          controller.goTo(controller.current());
+        });
+
+        var qRegler = document.getElementById("ea-q-regler");
+        var qWert = document.getElementById("ea-q-wert");
+        qRegler.addEventListener("input", function () {
+          Q = Number(qRegler.value);
+          ZIEHUNG = zufallsZiehung(Q);
+          qWert.textContent = Q;
+          controller.goTo(controller.current());
         });
       });
     })();

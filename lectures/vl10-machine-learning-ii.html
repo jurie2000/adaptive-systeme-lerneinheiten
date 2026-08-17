@@ -144,6 +144,16 @@
 
       <div class="ea-teil" id="teil-knn">
         <div class="ea-teil__titel">Teil A – k-Nearest-Neighbor</div>
+        <div class="as-regler-gruppe">
+          <div class="as-regler">
+            <label for="knn-x-regler">Testpunkt x <output id="knn-x-wert">1.50</output></label>
+            <input type="range" id="knn-x-regler" min="0" max="6" step="0.1" value="1.5">
+          </div>
+          <div class="as-regler">
+            <label for="knn-y-regler">Testpunkt y <output id="knn-y-wert">1.50</output></label>
+            <input type="range" id="knn-y-regler" min="0" max="6" step="0.1" value="1.5">
+          </div>
+        </div>
         <svg class="ml-svg" id="knn-svg" viewBox="0 0 200 160"></svg>
         <div class="ml-werte" id="knn-werte"></div>
       </div>
@@ -443,14 +453,15 @@
           zeilen.push("Distanzen sortiert: " + sortiert.map(function (e) { return e.klasse.toUpperCase() + "(" + e.d.toFixed(2) + ")"; }).join(", "));
         }
         if (step === 2) {
-          zeilen.push("<span class='ergebnis'>k=1: nächster Nachbar ist Klasse " + sortiert[0].klasse.toUpperCase() + " – vermutlich der Ausreißer!</span>");
+          zeilen.push("<span class='ergebnis'>k=1: nächster Nachbar ist Klasse " + sortiert[0].klasse.toUpperCase() + ".</span>");
         }
         if (step === 3) {
           var top3 = sortiert.slice(0, 3);
           var countA = top3.filter(function (e) { return e.klasse === "a"; }).length;
           var countB = top3.filter(function (e) { return e.klasse === "b"; }).length;
+          var mehrheitsklasse = countA > countB ? "A" : "B";
           zeilen.push("k=3 nächste Nachbarn: " + top3.map(function (e) { return e.klasse.toUpperCase(); }).join(", ") + " – Mehrheit A=" + countA + ", B=" + countB);
-          zeilen.push("<span class='ergebnis'>k=3: Mehrheitsklasse " + (countA > countB ? "A" : "B") + " – der Ausreißer wird überstimmt.</span>");
+          zeilen.push("<span class='ergebnis'>k=3: Mehrheitsklasse " + mehrheitsklasse + (mehrheitsklasse !== sortiert[0].klasse.toUpperCase() ? " – überstimmt den nächsten Einzelnachbarn." : " – stimmt hier mit dem nächsten Einzelnachbarn überein.") + "</span>");
         }
         zeilen.forEach(function (t) {
           var div = document.createElement("div");
@@ -538,24 +549,31 @@
 
       // ---------- Schrittsteuerung ----------
 
-      var SCHRITTE = [
-        "Sechs Trainingspunkte aus zwei Klassen (blau/orange) und ein Testpunkt. Ein orangefarbener Punkt liegt als Ausreißer sehr nah an der blauen Gruppe.",
-        "Die Distanz vom Testpunkt zu allen sechs Trainingspunkten wird berechnet und sortiert.",
-        "Nearest Neighbour (k=1) wählt nur den allernächsten Punkt – hier ausgerechnet den Ausreißer, das Ergebnis ist vermutlich falsch.",
-        "k-Nearest-Neighbor mit k=3 lässt die drei nächsten Punkte abstimmen – die Mehrheit überstimmt den Ausreißer und klassifiziert korrekt.",
-        "Für k-Means: sechs unbeschriftete Punkte, die zwei natürliche Gruppen bilden, plus zwei absichtlich ungünstig platzierte Startzentren.",
-        "Erster Zuordnungsschritt: Jeder Punkt wird per 1-NN dem näheren der beiden Zentren zugeordnet – wegen der schlechten Startposition sehr ungleich verteilt.",
-        "Erster Neuberechnungsschritt: Beide Zentren springen auf den Schwerpunkt der ihnen gerade zugeordneten Punkte.",
-        "Zweiter Zuordnungsschritt mit den neuen Zentren: Jetzt trennen sich die beiden natürlichen Gruppen bereits korrekt.",
-        "Zweiter Neuberechnungsschritt und Konvergenz: Eine weitere Zuordnung würde nichts mehr ändern – k-Means ist fertig."
-      ];
+      function baueSchritte() {
+        var sortiert = alleKnnPunkte();
+        var top3 = sortiert.slice(0, 3);
+        var countA = top3.filter(function (e) { return e.klasse === "a"; }).length;
+        var countB = top3.filter(function (e) { return e.klasse === "b"; }).length;
+        return [
+          "Sechs Trainingspunkte aus zwei Klassen (blau/orange) und ein Testpunkt. Ein orangefarbener Punkt liegt als Ausreißer sehr nah an der blauen Gruppe. Verschieben Sie den Testpunkt oben frei.",
+          "Die Distanz vom Testpunkt zu allen sechs Trainingspunkten wird berechnet und sortiert.",
+          "Nearest Neighbour (k=1) wählt nur den allernächsten Punkt – aktuell Klasse " + sortiert[0].klasse.toUpperCase() + ".",
+          "k-Nearest-Neighbor mit k=3 lässt die drei nächsten Punkte abstimmen (aktuell A=" + countA + ", B=" + countB + ") – bei einem in der Nähe liegenden Ausreißer überstimmt die Mehrheit ihn oft.",
+          "Für k-Means: sechs unbeschriftete Punkte, die zwei natürliche Gruppen bilden, plus zwei absichtlich ungünstig platzierte Startzentren.",
+          "Erster Zuordnungsschritt: Jeder Punkt wird per 1-NN dem näheren der beiden Zentren zugeordnet – wegen der schlechten Startposition sehr ungleich verteilt.",
+          "Erster Neuberechnungsschritt: Beide Zentren springen auf den Schwerpunkt der ihnen gerade zugeordneten Punkte.",
+          "Zweiter Zuordnungsschritt mit den neuen Zentren: Jetzt trennen sich die beiden natürlichen Gruppen bereits korrekt.",
+          "Zweiter Neuberechnungsschritt und Konvergenz: Eine weitere Zuordnung würde nichts mehr ändern – k-Means ist fertig."
+        ];
+      }
 
       function render(step) {
         renderKnn(Math.min(step, 3));
         renderKmeans(step);
 
-        document.getElementById("ea-step-text").textContent = SCHRITTE[step];
-        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + SCHRITTE.length;
+        var schritte = baueSchritte();
+        document.getElementById("ea-step-text").textContent = schritte[step];
+        document.getElementById("ea-zaehler").textContent = "Schritt " + (step + 1) + " von " + schritte.length;
       }
 
       document.addEventListener("DOMContentLoaded", function () {
@@ -565,7 +583,7 @@
         }
 
         var controller = window.ASModule.createStepController({
-          stepCount: SCHRITTE.length,
+          stepCount: 9,
           onRender: render
         });
 
@@ -576,6 +594,19 @@
             else if (action === "prev") controller.prev();
             else if (action === "reset") controller.reset();
             else if (action === "play") controller.play();
+          });
+        });
+
+        var xRegler = document.getElementById("knn-x-regler");
+        var xWert = document.getElementById("knn-x-wert");
+        var yRegler = document.getElementById("knn-y-regler");
+        var yWert = document.getElementById("knn-y-wert");
+        [xRegler, yRegler].forEach(function (regler) {
+          regler.addEventListener("input", function () {
+            TESTPUNKT = [Number(xRegler.value), Number(yRegler.value)];
+            xWert.textContent = TESTPUNKT[0].toFixed(2);
+            yWert.textContent = TESTPUNKT[1].toFixed(2);
+            controller.goTo(controller.current());
           });
         });
       });
